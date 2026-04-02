@@ -1,286 +1,154 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Hôte : 127.0.0.1
--- Généré le : mer. 11 mars 2026 à 17:59
--- Version du serveur : 10.4.32-MariaDB
--- Version de PHP : 8.2.12
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
+DROP TABLE IF EXISTS contact_messages;
+DROP TABLE IF EXISTS applications;
+DROP TABLE IF EXISTS jobs;
+DROP TABLE IF EXISTS company_profiles;
+DROP TABLE IF EXISTS candidate_profiles;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS users;
 
+SET FOREIGN_KEY_CHECKS = 1;
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    role ENUM('candidate', 'company', 'admin') NOT NULL,
+    email VARCHAR(190) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(50) DEFAULT NULL,
+    city VARCHAR(120) DEFAULT NULL,
+    country VARCHAR(120) DEFAULT NULL,
+    avatar VARCHAR(255) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Base de données : `recrutement`
---
+CREATE TABLE categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    slug VARCHAR(140) NOT NULL UNIQUE,
+    icon VARCHAR(80) DEFAULT NULL,
+    description VARCHAR(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
+CREATE TABLE candidate_profiles (
+    user_id INT PRIMARY KEY,
+    birth_date DATE DEFAULT NULL,
+    headline VARCHAR(180) DEFAULT NULL,
+    experience_level VARCHAR(50) DEFAULT NULL,
+    skills TEXT DEFAULT NULL,
+    bio TEXT DEFAULT NULL,
+    cv_filename VARCHAR(255) DEFAULT NULL,
+    linkedin_url VARCHAR(255) DEFAULT NULL,
+    github_url VARCHAR(255) DEFAULT NULL,
+    portfolio_url VARCHAR(255) DEFAULT NULL,
+    alerts_enabled TINYINT(1) NOT NULL DEFAULT 1,
+    visibility TINYINT(1) NOT NULL DEFAULT 1,
+    newsletter_enabled TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_candidate_profile_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Structure de la table `administrateur`
---
+CREATE TABLE company_profiles (
+    user_id INT PRIMARY KEY,
+    company_name VARCHAR(190) NOT NULL,
+    industry VARCHAR(120) DEFAULT NULL,
+    company_size VARCHAR(50) DEFAULT NULL,
+    description TEXT DEFAULT NULL,
+    website_url VARCHAR(255) DEFAULT NULL,
+    founded_year INT DEFAULT NULL,
+    address VARCHAR(255) DEFAULT NULL,
+    postal_code VARCHAR(50) DEFAULT NULL,
+    city VARCHAR(120) DEFAULT NULL,
+    country VARCHAR(120) DEFAULT NULL,
+    contact_name VARCHAR(190) DEFAULT NULL,
+    contact_role VARCHAR(120) DEFAULT NULL,
+    contact_email VARCHAR(190) DEFAULT NULL,
+    contact_phone VARCHAR(50) DEFAULT NULL,
+    linkedin_url VARCHAR(255) DEFAULT NULL,
+    twitter_url VARCHAR(255) DEFAULT NULL,
+    facebook_url VARCHAR(255) DEFAULT NULL,
+    public_profile TINYINT(1) NOT NULL DEFAULT 1,
+    application_notifications TINYINT(1) NOT NULL DEFAULT 1,
+    newsletter_enabled TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_company_profile_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `administrateur` (
-  `id_administrateur` int(11) NOT NULL,
-  `nom` varchar(25) DEFAULT NULL,
-  `prenom` varchar(25) DEFAULT NULL,
-  `anee_naissance` int(11) DEFAULT NULL,
-  `sexe` varchar(8) DEFAULT NULL,
-  `photo` varchar(255) DEFAULT NULL,
-  `telephone` varchar(15) DEFAULT NULL,
-  `email` varchar(25) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+CREATE TABLE jobs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    company_user_id INT NOT NULL,
+    category_id INT DEFAULT NULL,
+    title VARCHAR(190) NOT NULL,
+    contract_type VARCHAR(80) NOT NULL,
+    city VARCHAR(120) NOT NULL,
+    country VARCHAR(120) NOT NULL,
+    remote_allowed TINYINT(1) NOT NULL DEFAULT 0,
+    salary_min DECIMAL(12,2) DEFAULT NULL,
+    salary_max DECIMAL(12,2) DEFAULT NULL,
+    salary_period VARCHAR(50) DEFAULT NULL,
+    description TEXT NOT NULL,
+    responsibilities TEXT DEFAULT NULL,
+    requirements TEXT DEFAULT NULL,
+    bonus_skills TEXT DEFAULT NULL,
+    benefits TEXT DEFAULT NULL,
+    experience_level VARCHAR(80) DEFAULT NULL,
+    education_level VARCHAR(80) DEFAULT NULL,
+    tags VARCHAR(255) DEFAULT NULL,
+    expires_at DATE DEFAULT NULL,
+    status ENUM('draft', 'published', 'closed') NOT NULL DEFAULT 'published',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_jobs_company FOREIGN KEY (company_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_jobs_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Déchargement des données de la table `administrateur`
---
+CREATE TABLE applications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    job_id INT NOT NULL,
+    candidate_user_id INT NOT NULL,
+    cover_letter TEXT DEFAULT NULL,
+    status ENUM('submitted', 'reviewing', 'interview', 'accepted', 'rejected') NOT NULL DEFAULT 'submitted',
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_job_candidate (job_id, candidate_user_id),
+    CONSTRAINT fk_applications_job FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+    CONSTRAINT fk_applications_candidate FOREIGN KEY (candidate_user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `administrateur` (`id_administrateur`, `nom`, `prenom`, `anee_naissance`, `sexe`, `photo`, `telephone`, `email`) VALUES
-(1, 'Kira', 'Steve', 2001, 'Masculin', ' ', '658895572', 'steve.boussa@outlook.com');
+CREATE TABLE contact_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(190) NOT NULL,
+    email VARCHAR(190) NOT NULL,
+    phone VARCHAR(50) DEFAULT NULL,
+    subject VARCHAR(120) NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
+INSERT INTO categories (name, slug, icon, description) VALUES
+('Développement', 'developpement', 'fas fa-code', 'Backend, frontend, mobile et architecture logicielle'),
+('Design', 'design', 'fas fa-paint-brush', 'Produit, identité visuelle et UX'),
+('Marketing', 'marketing', 'fas fa-chart-line', 'Croissance, contenu et acquisition'),
+('Finance', 'finance', 'fas fa-wallet', 'Finance d''entreprise, comptabilité et contrôle'),
+('Ressources Humaines', 'rh', 'fas fa-users', 'Talent acquisition, RH et people ops'),
+('IT & Réseau', 'it-reseau', 'fas fa-network-wired', 'Infrastructure, support et cybersécurité');
 
---
--- Structure de la table `candidat`
---
+INSERT INTO users (id, role, email, password_hash, first_name, last_name, phone, city, country) VALUES
+(1, 'company', 'demo@jobhub.cm', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Grace', 'Tech', '+237 699 00 00 00', 'Douala', 'Cameroun'),
+(2, 'candidate', 'talent@jobhub.cm', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Naomi', 'Talent', '+237 677 00 00 00', 'Yaoundé', 'Cameroun'),
+(3, 'admin', 'admin@jobhub.cm', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Admin', 'JobHub', '+237 699 99 99 99', 'Douala', 'Cameroun');
 
-CREATE TABLE `candidat` (
-  `id_candidat` int(11) NOT NULL,
-  `nom` varchar(25) DEFAULT NULL,
-  `prenom` varchar(25) DEFAULT NULL,
-  `annee_naissance` date DEFAULT NULL,
-  `sexe` varchar(8) DEFAULT NULL,
-  `formation` varchar(35) DEFAULT NULL,
-  `portfolio` varchar(255) DEFAULT NULL,
-  `dernier_diplome` blob DEFAULT NULL,
-  `telephone` varchar(15) DEFAULT NULL,
-  `email` varchar(25) DEFAULT NULL,
-  `localisation` varchar(30) DEFAULT NULL,
-  `CNI` varchar(45) DEFAULT NULL,
-  `photo` varchar(45) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+INSERT INTO company_profiles (user_id, company_name, industry, company_size, description, website_url, founded_year, address, postal_code, city, country, contact_name, contact_role, contact_email, contact_phone, linkedin_url, public_profile, application_notifications, newsletter_enabled) VALUES
+(1, 'JobHub Studio', 'Technologie RH', '11-50', 'Entreprise spécialisée dans les plateformes de recrutement et les produits digitaux à fort impact.', 'https://jobhub.example', 2021, 'Bonanjo, Boulevard de la Liberté', '0000', 'Douala', 'Cameroun', 'Grace Tech', 'Fondatrice', 'demo@jobhub.cm', '+237 699 00 00 00', 'https://linkedin.com/company/jobhub-studio', 1, 1, 1);
 
---
--- Déchargement des données de la table `candidat`
---
+INSERT INTO candidate_profiles (user_id, birth_date, headline, experience_level, skills, bio, linkedin_url, github_url, portfolio_url, alerts_enabled, visibility, newsletter_enabled) VALUES
+(2, '1998-04-12', 'Développeuse Full Stack', '3-5', 'PHP, MySQL, JavaScript, UI, APIs', 'Profil démo prêt à postuler et à enrichir.', 'https://linkedin.com/in/naomi-talent', 'https://github.com/naomi-talent', 'https://portfolio.example', 1, 1, 1);
 
-INSERT INTO `candidat` (`id_candidat`, `nom`, `prenom`, `annee_naissance`, `sexe`, `formation`, `portfolio`, `dernier_diplome`, `telephone`, `email`, `localisation`, `CNI`, `photo`) VALUES
-(1, 'metewoue', 'maheva', '0000-00-00', 'feminin', ' ', 'genie logiciel', 0x20, 'baccalaureat', '69834810', 'maheva@237', 'bafoussam', ' ');
-
--- --------------------------------------------------------
-
---
--- Structure de la table `candidature`
---
-
-CREATE TABLE `candidature` (
-  `id_candidature` int(11) NOT NULL,
-  `date_envoie` date DEFAULT NULL,
-  `statut` varchar(45) DEFAULT NULL,
-  `etat` varchar(45) DEFAULT NULL,
-  `offre_id_offre` int(11) NOT NULL,
-  `candidat_id_candidat` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-
---
--- Déchargement des données de la table `candidature`
---
-
-INSERT INTO `candidature` (`id_candidature`, `date_envoie`, `statut`, `etat`, `offre_id_offre`, `candidat_id_candidat`) VALUES
-(5, '0000-00-00', 'actif', 'en cours', 1, 1);
-
--- --------------------------------------------------------
-
---
--- Structure de la table `entreprise`
---
-
-CREATE TABLE `entreprise` (
-  `identreprise` int(11) NOT NULL,
-  `secteur` varchar(45) NOT NULL,
-  `nom` varchar(45) NOT NULL,
-  `telephone` varchar(45) DEFAULT NULL,
-  `email` varchar(45) DEFAULT NULL,
-  `localisation` varchar(45) DEFAULT NULL,
-  `logo` varchar(45) DEFAULT NULL,
-  `siteweb` varchar(45) DEFAULT NULL,
-  `type` varchar(45) DEFAULT NULL,
-  `nomdirigeant` varchar(45) DEFAULT NULL,
-  `description` varchar(255) DEFAULT NULL,
-  `administrateur_id_administrateur` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-
---
--- Déchargement des données de la table `entreprise`
---
-
-INSERT INTO `entreprise` (`identreprise`, `secteur`, `nom`, `telephone`, `email`, `localisation`, `logo`, `siteweb`, `type`, `nomdirigeant`, `description`, `administrateur_id_administrateur`) VALUES
-(1, 'informatique', 'nmc', '698344810', 'nmc@gmail.com', 'bafoussam', ' ', ' ', 'dfg', 'grace', 'offre les services informatiques', 1);
-
--- --------------------------------------------------------
-
---
--- Structure de la table `offre`
---
-
-CREATE TABLE `offre` (
-  `id_offre` int(11) NOT NULL,
-  `description` varchar(255) DEFAULT NULL,
-  `date_publication` date DEFAULT NULL,
-  `delai` varchar(100) DEFAULT NULL,
-  `cible` varchar(105) DEFAULT NULL,
-  `entreprise_identreprise` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-
---
--- Déchargement des données de la table `offre`
---
-
-INSERT INTO `offre` (`id_offre`, `description`, `date_publication`, `delai`, `cible`, `entreprise_identreprise`) VALUES
-(1, 'secretaire de bureau', '0000-00-00', '30jours', 'informaticien', 1);
-
--- --------------------------------------------------------
-
---
--- Structure de la table `photo`
---
-
-CREATE TABLE `photo` (
-  `idphoto` int(11) NOT NULL,
-  `datepublication` date DEFAULT NULL,
-  `image` varchar(45) DEFAULT NULL,
-  `entreprise_identreprise` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-
---
--- Déchargement des données de la table `photo`
---
-
-INSERT INTO `photo` (`idphoto`, `datepublication`, `image`, `entreprise_identreprise`) VALUES
-(1, '2022-12-01', ' ', 1);
-
---
--- Index pour les tables déchargées
---
-
---
--- Index pour la table `administrateur`
---
-ALTER TABLE `administrateur`
-  ADD PRIMARY KEY (`id_administrateur`);
-
---
--- Index pour la table `candidat`
---
-ALTER TABLE `candidat`
-  ADD PRIMARY KEY (`id_candidat`);
-
---
--- Index pour la table `candidature`
---
-ALTER TABLE `candidature`
-  ADD PRIMARY KEY (`id_candidature`),
-  ADD KEY `fk_candidature_offre_idx` (`offre_id_offre`),
-  ADD KEY `fk_candidature_candidat1_idx` (`candidat_id_candidat`);
-
---
--- Index pour la table `entreprise`
---
-ALTER TABLE `entreprise`
-  ADD PRIMARY KEY (`identreprise`),
-  ADD KEY `fk_entreprise_administrateur1_idx` (`administrateur_id_administrateur`);
-
---
--- Index pour la table `offre`
---
-ALTER TABLE `offre`
-  ADD PRIMARY KEY (`id_offre`),
-  ADD KEY `fk_offre_entreprise1_idx` (`entreprise_identreprise`);
-
---
--- Index pour la table `photo`
---
-ALTER TABLE `photo`
-  ADD PRIMARY KEY (`idphoto`),
-  ADD KEY `fk_photo_entreprise1_idx` (`entreprise_identreprise`);
-
---
--- AUTO_INCREMENT pour les tables déchargées
---
-
---
--- AUTO_INCREMENT pour la table `administrateur`
---
-ALTER TABLE `administrateur`
-  MODIFY `id_administrateur` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT pour la table `candidat`
---
-ALTER TABLE `candidat`
-  MODIFY `id_candidat` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT pour la table `candidature`
---
-ALTER TABLE `candidature`
-  MODIFY `id_candidature` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
-
---
--- AUTO_INCREMENT pour la table `entreprise`
---
-ALTER TABLE `entreprise`
-  MODIFY `identreprise` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT pour la table `offre`
---
-ALTER TABLE `offre`
-  MODIFY `id_offre` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- AUTO_INCREMENT pour la table `photo`
---
-ALTER TABLE `photo`
-  MODIFY `idphoto` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
-
---
--- Contraintes pour les tables déchargées
---
-
---
--- Contraintes pour la table `candidature`
---
-ALTER TABLE `candidature`
-  ADD CONSTRAINT `fk_candidature_candidat1` FOREIGN KEY (`candidat_id_candidat`) REFERENCES `candidat` (`id_candidat`),
-  ADD CONSTRAINT `fk_candidature_offre` FOREIGN KEY (`offre_id_offre`) REFERENCES `offre` (`id_offre`);
-
---
--- Contraintes pour la table `entreprise`
---
-ALTER TABLE `entreprise`
-  ADD CONSTRAINT `fk_entreprise_administrateur1` FOREIGN KEY (`administrateur_id_administrateur`) REFERENCES `administrateur` (`id_administrateur`);
-
---
--- Contraintes pour la table `offre`
---
-ALTER TABLE `offre`
-  ADD CONSTRAINT `fk_offre_entreprise1` FOREIGN KEY (`entreprise_identreprise`) REFERENCES `entreprise` (`identreprise`);
-
---
--- Contraintes pour la table `photo`
---
-ALTER TABLE `photo`
-  ADD CONSTRAINT `fk_photo_entreprise1` FOREIGN KEY (`entreprise_identreprise`) REFERENCES `entreprise` (`identreprise`);
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+INSERT INTO jobs (company_user_id, category_id, title, contract_type, city, country, remote_allowed, salary_min, salary_max, salary_period, description, responsibilities, requirements, bonus_skills, benefits, experience_level, education_level, tags, expires_at, status) VALUES
+(1, 1, 'Développeur PHP Full Stack', 'CDI', 'Douala', 'Cameroun', 1, 450000, 700000, 'mois', 'Nous recherchons un développeur PHP capable de piloter des interfaces métiers robustes et élégantes.', 'Construire des modules PHP, maintenir la base de données, améliorer l''expérience recruteur et candidat.', 'Très bonne maîtrise de PHP, MySQL, HTML/CSS et architecture MVC.', 'Expérience produit, UX et performance SQL.', 'Télétravail partiel, prime de performance, budget formation.', '3-5', 'Bac+3', 'PHP,MySQL,MVC,UX', DATE_ADD(CURDATE(), INTERVAL 45 DAY), 'published'),
+(1, 3, 'Growth Marketing Manager', 'CDI', 'Yaoundé', 'Cameroun', 0, 350000, 550000, 'mois', 'Piloter la croissance et les campagnes d''acquisition de la marque JobHub.', 'Lancer des campagnes, suivre les KPIs, améliorer le funnel d''inscription.', 'Maîtrise analytics, marketing digital et copywriting.', 'Connaissances en produit SaaS.', 'Prime trimestrielle, budget ads, équipe ambitieuse.', '3-5', 'Bac+3', 'Marketing,Growth,Analytics', DATE_ADD(CURDATE(), INTERVAL 30 DAY), 'published');

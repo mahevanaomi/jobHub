@@ -1,4 +1,6 @@
 // Script pour mettre à jour toutes les alertes dans les pages
+const isViewsPage = window.location.pathname.includes('/views/');
+const routeTo = (page) => (isViewsPage ? page : `views/${page}`);
 
 // LOGIN PAGE
 function updateLoginPage() {
@@ -26,9 +28,9 @@ function updateLoginPage() {
 
                 setTimeout(() => {
                     if (accountType === 'entreprise') {
-                        window.location.href = 'dashboard-entreprise.html';
+                        window.location.href = routeTo('dashboard-entreprise.php');
                     } else {
-                        window.location.href = 'dashboard-candidat.html';
+                        window.location.href = routeTo('dashboard-candidat.php');
                     }
                 }, 1500);
             }, 1500);
@@ -93,7 +95,7 @@ function updateJobDetailsPage() {
                 );
 
                 if (confirmed) {
-                    window.location.href = 'inscription.html';
+                    window.location.href = routeTo('inscription.php');
                 }
             } else {
                 const originalText = applyBtn.textContent;
@@ -171,7 +173,7 @@ function updatePosterOffrePage() {
                     `Votre offre "${titre}" à ${ville} a été publiée avec succès ! Elle est maintenant visible par tous les candidats.`
                 );
                 setTimeout(() => {
-                    window.location.href = 'dashboard-entreprise.html';
+                    window.location.href = routeTo('dashboard-entreprise.php');
                 }, 2000);
             }, 2000);
         });
@@ -215,7 +217,7 @@ async function logout() {
         showSuccess('Déconnexion réussie', 'Vous avez été déconnecté avec succès. À bientôt !');
 
         setTimeout(() => {
-            window.location.href = 'index.html';
+            window.location.href = isViewsPage ? '../index.php' : 'index.php';
         }, 1500);
     }
 }

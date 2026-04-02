@@ -1,21 +1,8 @@
 <?php
-  
-  session_start();
+declare(strict_types=1);
 
-  require_once '../models/categorie.php';
-  require_once '../models/inscription.php';
-  require_once '../models/style.php';
-  require_once '../models/livre.php';
-  require_once '../models/utilisateur.php';
-  require_once '../models/emprunt.php';
+require_once __DIR__ . '/../app/bootstrap.php';
+require_once __DIR__ . '/../models/categorie.php';
 
-
-  $categoriedb = new categorieDB();
-//   $quartierdb = new quartierDB();
-//   $styledb = new styleDB();
-//   $livredb = new livreDB();
-//   $utilisateurdb = new UtilisateurDB();
-//   $empruntdb = new empruntDB();
-
-
-?>
+$categoriedb = new categorieDB();
+$categories = $categoriedb->readall();

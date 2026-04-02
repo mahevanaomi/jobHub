@@ -1,507 +1,649 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JobHub - Votre Avenir Commence Ici</title>
-    <link rel="stylesheet" href="views/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-    <!-- HEADER -->
-    <header class="header">
-        <div class="container">
-            <nav class="navbar">
-                <div class="logo">
-                    <i class="fas fa-briefcase"></i>
-                    <span>Job<strong>Hub</strong></span>
-                </div>
-                <ul class="nav-menu">
-                    <li><a href="#home" class="nav-link active">Accueil</a></li>
-                    <li><a href="#jobs" class="nav-link">Emplois</a></li>
-                    <li><a href="#categories" class="nav-link">Catégories</a></li>
-                    <li><a href="about.html" class="nav-link">À Propos</a></li>
-                    <li><a href="contact.html" class="nav-link">Contact</a></li>
-                </ul>
-                <div class="nav-buttons">
-                    <a href="login.html" class="btn btn-outline">Connexion</a>
-                    <a href="inscription.html" class="btn btn-primary">Inscription</a>
-                </div>
-                <div class="hamburger">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </nav>
-        </div>
-    </header>
+<?php
 
-    <!-- HERO SECTION -->
-    <section class="hero" id="home">
-        <div class="container">
-            <div class="hero-content">
-                <h1 class="hero-title">Votre Avenir Commence Ici</h1>
-                <p class="hero-subtitle">Trouvez l'emploi de vos rêves parmi des milliers d'offres disponibles</p>
+declare(strict_types=1);
 
-                <div class="search-box">
-                    <div class="search-input-group">
-                        <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Titre du poste, mots-clés..." id="searchInput">
-                    </div>
-                    <div class="search-input-group">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <input type="text" placeholder="Ville, région..." id="locationInput">
-                    </div>
-                    <button class="btn btn-search">Rechercher</button>
+require_once __DIR__ . '/app/bootstrap.php';
+
+$filters = [
+    'search'        => trim($_GET['search'] ?? ''),
+    'city'          => trim($_GET['city'] ?? ''),
+    'category'      => trim($_GET['category'] ?? ''),
+    'contract_type' => trim($_GET['contract_type'] ?? ''),
+];
+
+$categories = get_categories();
+$jobs       = get_featured_jobs($filters);
+
+$pageTitle  = 'JobHub — Plateforme de recrutement au Cameroun';
+$assetBase  = '';
+$rootPath   = '/index.php';
+$viewsPath  = '/views';
+
+require __DIR__ . '/app/views/header.php';
+?>
+
+<style>
+/* ── Homepage-specific styles ───────────────────────────────────────── */
+
+/* Hero panel glassmorphism refinement */
+.hero-panel .panel-card {
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+}
+
+/* Trust strip overlapping hero */
+.trust-strip {
+    margin-top: -2rem;
+    position: relative;
+    z-index: 10;
+}
+
+/* ── How It Works ───────────────────────────────────────────────────── */
+.how-it-works {
+    padding: 6rem 0;
+    background: #f8faff;
+}
+
+.how-it-works .section-title,
+.how-it-works .section-subtitle {
+    text-align: center;
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+    position: relative;
+}
+
+/* Connector line between steps on wide screens */
+@media (min-width: 768px) {
+    .steps-grid::before {
+        content: '';
+        position: absolute;
+        top: 2.5rem;
+        left: calc(50% / 3 + 2.5rem);
+        right: calc(50% / 3 + 2.5rem);
+        height: 2px;
+        background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #6366f1 100%);
+        opacity: .25;
+        z-index: 0;
+    }
+}
+
+.step-card {
+    background: #fff;
+    border: 1px solid #e8eaf0;
+    border-radius: 1.25rem;
+    padding: 2.25rem 1.75rem;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.step-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(99, 102, 241, .12);
+}
+
+.step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, .35);
+}
+
+.step-icon {
+    font-size: 1.1rem;
+}
+
+.step-card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: .5rem;
+}
+
+.step-card p {
+    font-size: .92rem;
+    color: #6b7280;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* ── Category card count badge ──────────────────────────────────────── */
+.category-count {
+    display: inline-block;
+    margin-top: .5rem;
+    font-size: .78rem;
+    font-weight: 600;
+    color: #6366f1;
+    background: rgba(99, 102, 241, .08);
+    padding: .2rem .65rem;
+    border-radius: 99px;
+}
+
+/* ── Job card salary highlight ──────────────────────────────────────── */
+.job-salary {
+    font-weight: 600;
+    color: #059669;
+}
+
+/* ── Section title accent underline ────────────────────────────────── */
+.section-title-accent {
+    display: inline-block;
+    position: relative;
+}
+
+.section-title-accent::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 0;
+    width: 48px;
+    height: 3px;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+}
+
+/* ── Job card hidden (voir plus) ────────────────────────────────────── */
+.job-card-hidden {
+    display: none !important;
+}
+
+/* ── Empty state icon ───────────────────────────────────────────────── */
+.empty-state {
+    text-align: center;
+    padding: 4rem 1rem;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    color: #d1d5db;
+    margin-bottom: 1rem;
+}
+
+/* ── Filter bar active pill ─────────────────────────────────────────── */
+.active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin-bottom: 1.25rem;
+}
+
+.active-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: rgba(99, 102, 241, .08);
+    border: 1px solid rgba(99, 102, 241, .25);
+    color: #4f46e5;
+    font-size: .8rem;
+    font-weight: 600;
+    padding: .3rem .75rem;
+    border-radius: 99px;
+}
+
+/* ── CTA gradient overlay ────────────────────────────────────────────── */
+.cta-section {
+    overflow: hidden;
+    position: relative;
+}
+
+.cta-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 80% at 50% 120%, rgba(139, 92, 246, .35) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* ── Responsive tweaks ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .steps-grid {
+        grid-template-columns: 1fr;
+    }
+    .active-filters {
+        margin-top: .75rem;
+    }
+}
+</style>
+
+<!-- ════════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════ -->
+<section class="hero" id="home">
+    <div class="container">
+        <div class="hero-shell">
+
+            <!-- Left: copy -->
+            <div class="hero-copy">
+                <span class="hero-kicker">
+                    <i class="fas fa-star" style="color:#fbbf24;font-size:.8rem;"></i>
+                    La plateforme&nbsp;#1 de recrutement au Cameroun
+                </span>
+
+                <h1 class="hero-title">
+                    Trouvez le talent parfait<br>ou le poste idéal
+                </h1>
+
+                <p class="hero-subtitle">
+                    Des milliers d'offres vérifiées, des recruteurs actifs et un parcours fluide — pour candidats ambitieux et entreprises sérieuses.
+                </p>
+
+                <div class="hero-actions">
+                    <a href="#jobs" class="btn btn-light">
+                        <i class="fas fa-search" style="margin-right:.45rem;"></i>Découvrir les offres
+                    </a>
+                    <a href="<?= e($viewsPath) ?>/poster-offre.php" class="btn btn-outline hero-outline">
+                        <i class="fas fa-plus" style="margin-right:.45rem;"></i>Publier une offre
+                    </a>
                 </div>
 
                 <div class="hero-stats">
                     <div class="stat">
-                        <h3>12,458</h3>
-                        <p>Offres d'emploi</p>
+                        <h3><?= count($jobs) ?></h3>
+                        <p>Offres actives</p>
                     </div>
                     <div class="stat">
-                        <h3>5,230</h3>
-                        <p>Entreprises</p>
+                        <h3><?= count($categories) ?></h3>
+                        <p>Secteurs couverts</p>
                     </div>
                     <div class="stat">
-                        <h3>8,947</h3>
-                        <p>Candidats</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CATEGORIES SECTION -->
-    <section class="categories" id="categories">
-        <div class="container">
-            <h2 class="section-title">Catégories Populaires</h2>
-            <p class="section-subtitle">Explorez les opportunités par domaine</p>
-
-            <div class="categories-grid">
-                <div class="category-card">
-                    <div class="category-icon">
-                        <i class="fas fa-code"></i>
-                    </div>
-                    <h3>Développement</h3>
-                    <p>2,458 emplois</p>
-                </div>
-                <div class="category-card">
-                    <div class="category-icon">
-                        <i class="fas fa-paint-brush"></i>
-                    </div>
-                    <h3>Design</h3>
-                    <p>1,234 emplois</p>
-                </div>
-                <div class="category-card">
-                    <div class="category-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <h3>Marketing</h3>
-                    <p>1,867 emplois</p>
-                </div>
-                <div class="category-card">
-                    <div class="category-icon">
-                        <i class="fas fa-dollar-sign"></i>
-                    </div>
-                    <h3>Finance</h3>
-                    <p>987 emplois</p>
-                </div>
-                <div class="category-card">
-                    <div class="category-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <h3>Ressources Humaines</h3>
-                    <p>654 emplois</p>
-                </div>
-                <div class="category-card">
-                    <div class="category-icon">
-                        <i class="fas fa-cogs"></i>
-                    </div>
-                    <h3>Ingénierie</h3>
-                    <p>1,543 emplois</p>
-                </div>
-                <div class="category-card">
-                    <div class="category-icon">
-                        <i class="fas fa-headset"></i>
-                    </div>
-                    <h3>Support Client</h3>
-                    <p>876 emplois</p>
-                </div>
-                <div class="category-card">
-                    <div class="category-icon">
-                        <i class="fas fa-laptop"></i>
-                    </div>
-                    <h3>IT & Réseau</h3>
-                    <p>1,098 emplois</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- FEATURED JOBS SECTION -->
-    <section class="jobs-section" id="jobs">
-        <div class="container">
-            <h2 class="section-title">Offres d'Emploi Récentes</h2>
-            <p class="section-subtitle">Découvrez les dernières opportunités de carrière</p>
-
-            <div class="filters">
-                <button class="filter-btn active" data-filter="all">Tous</button>
-                <button class="filter-btn" data-filter="temps-plein">Temps Plein</button>
-                <button class="filter-btn" data-filter="temps-partiel">Temps Partiel</button>
-                <button class="filter-btn" data-filter="freelance">Freelance</button>
-                <button class="filter-btn" data-filter="stage">Stage</button>
-            </div>
-
-            <div class="jobs-grid">
-                <!-- Job Card 1 -->
-                <div class="job-card" data-category="temps-plein">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/google.com" alt="Google" class="company-logo">
-                        <span class="job-badge">Temps Plein</span>
-                    </div>
-                    <h3 class="job-title">Développeur Full Stack Senior</h3>
-                    <p class="company-name">Google Inc.</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Paris, France</span>
-                        <span><i class="fas fa-wallet"></i> 60k - 80k €/an</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>React</span>
-                        <span>Node.js</span>
-                        <span>MongoDB</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 2 heures</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
-                    </div>
-                </div>
-
-                <!-- Job Card 2 -->
-                <div class="job-card" data-category="temps-plein">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/microsoft.com" alt="Microsoft" class="company-logo">
-                        <span class="job-badge">Temps Plein</span>
-                    </div>
-                    <h3 class="job-title">UI/UX Designer</h3>
-                    <p class="company-name">Microsoft Corporation</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Lyon, France</span>
-                        <span><i class="fas fa-wallet"></i> 45k - 65k €/an</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>Figma</span>
-                        <span>Adobe XD</span>
-                        <span>UI Design</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 5 heures</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
-                    </div>
-                </div>
-
-                <!-- Job Card 3 -->
-                <div class="job-card" data-category="freelance">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/amazon.com" alt="Amazon" class="company-logo">
-                        <span class="job-badge badge-freelance">Freelance</span>
-                    </div>
-                    <h3 class="job-title">Data Scientist</h3>
-                    <p class="company-name">Amazon Web Services</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Télétravail</span>
-                        <span><i class="fas fa-wallet"></i> 500 - 700 €/jour</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>Python</span>
-                        <span>Machine Learning</span>
-                        <span>TensorFlow</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 1 jour</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
-                    </div>
-                </div>
-
-                <!-- Job Card 4 -->
-                <div class="job-card" data-category="temps-plein">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/apple.com" alt="Apple" class="company-logo">
-                        <span class="job-badge">Temps Plein</span>
-                    </div>
-                    <h3 class="job-title">Développeur iOS</h3>
-                    <p class="company-name">Apple Inc.</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Marseille, France</span>
-                        <span><i class="fas fa-wallet"></i> 55k - 75k €/an</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>Swift</span>
-                        <span>iOS</span>
-                        <span>Xcode</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 1 jour</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
-                    </div>
-                </div>
-
-                <!-- Job Card 5 -->
-                <div class="job-card" data-category="stage">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/facebook.com" alt="Meta" class="company-logo">
-                        <span class="job-badge badge-stage">Stage</span>
-                    </div>
-                    <h3 class="job-title">Stagiaire Marketing Digital</h3>
-                    <p class="company-name">Meta (Facebook)</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Paris, France</span>
-                        <span><i class="fas fa-wallet"></i> 1,200 €/mois</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>SEO</span>
-                        <span>Social Media</span>
-                        <span>Analytics</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 2 jours</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
-                    </div>
-                </div>
-
-                <!-- Job Card 6 -->
-                <div class="job-card" data-category="temps-plein">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/netflix.com" alt="Netflix" class="company-logo">
-                        <span class="job-badge">Temps Plein</span>
-                    </div>
-                    <h3 class="job-title">Ingénieur DevOps</h3>
-                    <p class="company-name">Netflix</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Toulouse, France</span>
-                        <span><i class="fas fa-wallet"></i> 65k - 85k €/an</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>Docker</span>
-                        <span>Kubernetes</span>
-                        <span>AWS</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 3 jours</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
-                    </div>
-                </div>
-
-                <!-- Job Card 7 -->
-                <div class="job-card" data-category="temps-partiel">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/spotify.com" alt="Spotify" class="company-logo">
-                        <span class="job-badge badge-partiel">Temps Partiel</span>
-                    </div>
-                    <h3 class="job-title">Community Manager</h3>
-                    <p class="company-name">Spotify</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Bordeaux, France</span>
-                        <span><i class="fas fa-wallet"></i> 25k - 35k €/an</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>Community</span>
-                        <span>Content</span>
-                        <span>Social Media</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 4 jours</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
-                    </div>
-                </div>
-
-                <!-- Job Card 8 -->
-                <div class="job-card" data-category="temps-plein">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/uber.com" alt="Uber" class="company-logo">
-                        <span class="job-badge">Temps Plein</span>
-                    </div>
-                    <h3 class="job-title">Product Manager</h3>
-                    <p class="company-name">Uber Technologies</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Paris, France</span>
-                        <span><i class="fas fa-wallet"></i> 70k - 90k €/an</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>Product</span>
-                        <span>Agile</span>
-                        <span>Strategy</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 5 jours</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
-                    </div>
-                </div>
-
-                <!-- Job Card 9 -->
-                <div class="job-card" data-category="freelance">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/airbnb.com" alt="Airbnb" class="company-logo">
-                        <span class="job-badge badge-freelance">Freelance</span>
-                    </div>
-                    <h3 class="job-title">Rédacteur Web</h3>
-                    <p class="company-name">Airbnb</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Télétravail</span>
-                        <span><i class="fas fa-wallet"></i> 300 - 450 €/jour</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>Rédaction</span>
-                        <span>SEO</span>
-                        <span>Content</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 1 semaine</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
-                    </div>
-                </div>
-
-                <!-- Job Card 10 -->
-                <div class="job-card" data-category="temps-plein">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/salesforce.com" alt="Salesforce" class="company-logo">
-                        <span class="job-badge">Temps Plein</span>
-                    </div>
-                    <h3 class="job-title">Consultant CRM</h3>
-                    <p class="company-name">Salesforce</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Nantes, France</span>
-                        <span><i class="fas fa-wallet"></i> 50k - 70k €/an</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>Salesforce</span>
-                        <span>CRM</span>
-                        <span>Cloud</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 1 semaine</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
-                    </div>
-                </div>
-
-                <!-- Job Card 11 -->
-                <div class="job-card" data-category="temps-plein">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/adobe.com" alt="Adobe" class="company-logo">
-                        <span class="job-badge">Temps Plein</span>
-                    </div>
-                    <h3 class="job-title">Motion Designer</h3>
-                    <p class="company-name">Adobe Systems</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Lille, France</span>
-                        <span><i class="fas fa-wallet"></i> 42k - 58k €/an</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>After Effects</span>
-                        <span>Animation</span>
-                        <span>Video</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 1 semaine</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
-                    </div>
-                </div>
-
-                <!-- Job Card 12 -->
-                <div class="job-card" data-category="temps-plein">
-                    <div class="job-header">
-                        <img src="https://logo.clearbit.com/tesla.com" alt="Tesla" class="company-logo">
-                        <span class="job-badge">Temps Plein</span>
-                    </div>
-                    <h3 class="job-title">Ingénieur Mécanique</h3>
-                    <p class="company-name">Tesla Motors</p>
-                    <div class="job-details">
-                        <span><i class="fas fa-map-marker-alt"></i> Strasbourg, France</span>
-                        <span><i class="fas fa-wallet"></i> 55k - 75k €/an</span>
-                    </div>
-                    <div class="job-tags">
-                        <span>CAO</span>
-                        <span>Mécanique</span>
-                        <span>Innovation</span>
-                    </div>
-                    <div class="job-footer">
-                        <span class="job-time"><i class="far fa-clock"></i> Il y a 2 semaines</span>
-                        <a href="job-details.html" class="btn btn-apply">Postuler</a>
+                        <h3>100&nbsp;%</h3>
+                        <p>Offres vérifiées</p>
                     </div>
                 </div>
             </div>
 
-            <div class="load-more">
-                <button class="btn btn-primary">Voir Plus d'Offres</button>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA SECTION -->
-    <section class="cta-section">
-        <div class="container">
-            <div class="cta-content">
-                <h2>Vous êtes une entreprise ?</h2>
-                <p>Publiez vos offres d'emploi et trouvez les meilleurs talents</p>
-                <a href="poster-offre.html" class="btn btn-light">Publier une Offre</a>
-            </div>
-        </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-col">
-                    <div class="logo">
-                        <i class="fas fa-briefcase"></i>
-                        <span>Job<strong>Hub</strong></span>
+            <!-- Right: search card -->
+            <div class="hero-panel">
+                <div class="panel-card">
+                    <div class="panel-topline">
+                        <span><i class="fas fa-bolt" style="color:#fbbf24;margin-right:.35rem;"></i>Recherche rapide</span>
+                        <strong>Données en direct</strong>
                     </div>
-                    <p>Votre plateforme de référence pour trouver l'emploi idéal ou recruter les meilleurs talents.</p>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-linkedin"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                    </div>
-                </div>
-                <div class="footer-col">
-                    <h3>Pour les Candidats</h3>
-                    <ul>
-                        <li><a href="index.html#jobs">Rechercher un Emploi</a></li>
-                        <li><a href="inscription.html">Créer un Profil</a></li>
-                        <li><a href="login.html">Mon Compte</a></li>
-                        <li><a href="dashboard-candidat.html">Mon Dashboard</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h3>Pour les Entreprises</h3>
-                    <ul>
-                        <li><a href="poster-offre.html">Publier une Offre</a></li>
-                        <li><a href="inscription.html">Créer un Compte</a></li>
-                        <li><a href="login.html">Espace Entreprise</a></li>
-                        <li><a href="contact.html">Nous Contacter</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h3>À Propos</h3>
-                    <ul>
-                        <li><a href="about.html">Qui sommes-nous ?</a></li>
-                        <li><a href="contact.html">Nous Contacter</a></li>
-                        <li><a href="#">Conditions d'utilisation</a></li>
-                        <li><a href="#">Politique de confidentialité</a></li>
+
+                    <form method="get" action="/index.php" class="search-box">
+                        <div class="search-input-group">
+                            <i class="fas fa-search"></i>
+                            <input
+                                type="text"
+                                name="search"
+                                placeholder="Titre, mot-clé, entreprise…"
+                                value="<?= e($filters['search']) ?>"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <div class="search-input-group">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <input
+                                type="text"
+                                name="city"
+                                placeholder="Ville (ex. Douala, Yaoundé)"
+                                value="<?= e($filters['city']) ?>"
+                                autocomplete="off"
+                            >
+                        </div>
+                        <button class="btn btn-search" type="submit">
+                            <i class="fas fa-arrow-right" style="margin-right:.4rem;"></i>Trouver des offres
+                        </button>
+                    </form>
+
+                    <ul class="signal-list">
+                        <li><span class="signal-dot"></span>Offres mises à jour quotidiennement</li>
+                        <li><span class="signal-dot"></span>Candidature en un clic</li>
+                        <li><span class="signal-dot"></span>Suivi recruteur en temps réel</li>
                     </ul>
                 </div>
             </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 JobHub. Tous droits réservés.</p>
+
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     TRUST BAR
+════════════════════════════════════════════════════ -->
+<section class="trust-strip">
+    <div class="container trust-grid">
+        <div class="trust-pill">
+            <strong><?= count($jobs) ?>+</strong>
+            <span>offres disponibles</span>
+        </div>
+        <div class="trust-pill">
+            <strong><?= count($categories) ?></strong>
+            <span>secteurs d'activité</span>
+        </div>
+        <div class="trust-pill">
+            <strong>PHP&nbsp;8</strong>
+            <span>stack moderne &amp; sécurisée</span>
+        </div>
+        <div class="trust-pill">
+            <strong>24/7</strong>
+            <span>plateforme disponible</span>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     CATEGORIES
+════════════════════════════════════════════════════ -->
+<section class="categories" id="categories">
+    <div class="container">
+        <h2 class="section-title">
+            <span class="section-title-accent">Explorer par secteur</span>
+        </h2>
+        <p class="section-subtitle">
+            Parcourez nos catégories et trouvez les opportunités qui correspondent à votre profil.
+        </p>
+
+        <div class="categories-grid">
+            <?php foreach ($categories as $cat): ?>
+                <a class="category-card" href="/index.php?category=<?= urlencode($cat['slug']) ?>#jobs">
+                    <div class="category-icon">
+                        <i class="<?= e($cat['icon'] ?: 'fas fa-briefcase') ?>"></i>
+                    </div>
+                    <h3><?= e($cat['name']) ?></h3>
+                    <p><?= e($cat['description'] ?: 'Opportunités professionnelles') ?></p>
+                    <span class="category-count">Voir les offres <i class="fas fa-arrow-right" style="font-size:.7rem;margin-left:.2rem;"></i></span>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     JOBS
+════════════════════════════════════════════════════ -->
+<section class="jobs-section" id="jobs">
+    <div class="container">
+
+        <h2 class="section-title">
+            <span class="section-title-accent">Offres disponibles</span>
+        </h2>
+        <p class="section-subtitle">
+            <?php if (array_filter($filters)): ?>
+                Résultats filtrés — <?= count($jobs) ?> offre<?= count($jobs) !== 1 ? 's' : '' ?> trouvée<?= count($jobs) !== 1 ? 's' : '' ?>
+            <?php else: ?>
+                Toutes les offres publiées, mises à jour en temps réel
+            <?php endif; ?>
+        </p>
+
+        <!-- Active filter pills -->
+        <?php $activeFilters = array_filter($filters); ?>
+        <?php if ($activeFilters): ?>
+            <div class="active-filters">
+                <?php if ($filters['search']): ?>
+                    <span class="active-filter-pill"><i class="fas fa-search"></i><?= e($filters['search']) ?></span>
+                <?php endif; ?>
+                <?php if ($filters['city']): ?>
+                    <span class="active-filter-pill"><i class="fas fa-map-marker-alt"></i><?= e($filters['city']) ?></span>
+                <?php endif; ?>
+                <?php if ($filters['category']): ?>
+                    <span class="active-filter-pill"><i class="fas fa-tag"></i><?= e($filters['category']) ?></span>
+                <?php endif; ?>
+                <?php if ($filters['contract_type']): ?>
+                    <span class="active-filter-pill"><i class="fas fa-file-contract"></i><?= e($filters['contract_type']) ?></span>
+                <?php endif; ?>
+                <a href="/index.php#jobs" style="font-size:.8rem;color:#9ca3af;text-decoration:none;align-self:center;margin-left:.25rem;">
+                    <i class="fas fa-times-circle"></i> Effacer
+                </a>
+            </div>
+        <?php endif; ?>
+
+        <!-- Filter bar -->
+        <form method="get" action="/index.php" class="filter-bar">
+            <div class="filter-group filter-group-wide">
+                <label for="f-search">Mot-clé</label>
+                <input
+                    id="f-search"
+                    type="text"
+                    name="search"
+                    value="<?= e($filters['search']) ?>"
+                    placeholder="PHP, marketing, réseau…"
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="filter-group">
+                <label for="f-city">Ville</label>
+                <input
+                    id="f-city"
+                    type="text"
+                    name="city"
+                    value="<?= e($filters['city']) ?>"
+                    placeholder="Douala, Yaoundé…"
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="filter-group">
+                <label for="f-category">Secteur</label>
+                <select id="f-category" name="category">
+                    <option value="">Tous les secteurs</option>
+                    <?php foreach ($categories as $cat): ?>
+                        <option
+                            value="<?= e($cat['slug']) ?>"
+                            <?= $filters['category'] === $cat['slug'] ? 'selected' : '' ?>
+                        >
+                            <?= e($cat['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="f-contract">Contrat</label>
+                <select id="f-contract" name="contract_type">
+                    <option value="">Tous les contrats</option>
+                    <?php foreach (['CDI', 'CDD', 'Stage', 'Freelance', 'Alternance'] as $ct): ?>
+                        <option value="<?= e($ct) ?>" <?= $filters['contract_type'] === $ct ? 'selected' : '' ?>>
+                            <?= e($ct) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter" style="margin-right:.35rem;"></i>Appliquer
+                </button>
+                <a href="/index.php#jobs" class="btn btn-outline">
+                    <i class="fas fa-rotate-left" style="margin-right:.35rem;"></i>Réinitialiser
+                </a>
+            </div>
+        </form>
+
+        <!-- Results -->
+        <?php if (!$jobs): ?>
+            <div class="empty-state">
+                <div class="empty-state-icon"><i class="fas fa-search-minus"></i></div>
+                <h3>Aucune offre ne correspond à cette recherche</h3>
+                <p>Essayez un autre mot-clé, une autre ville ou réinitialisez les filtres.</p>
+                <a href="/index.php#jobs" class="btn btn-primary" style="margin-top:1.25rem;">
+                    Voir toutes les offres
+                </a>
+            </div>
+        <?php else: ?>
+            <?php $visibleLimit = 6; $hasMore = count($jobs) > $visibleLimit; ?>
+            <div class="jobs-grid" id="jobs-grid">
+                <?php foreach ($jobs as $idx => $job): ?>
+                    <article class="job-card <?= $idx >= $visibleLimit ? 'job-card-hidden' : '' ?>" data-category="<?= e(strtolower($job['contract_type'])) ?>">
+
+                        <div class="job-header">
+                            <span class="job-badge"><?= e($job['contract_type']) ?></span>
+                            <span class="job-mini-tag"><?= e($job['category_name'] ?: 'Général') ?></span>
+                        </div>
+
+                        <h3 class="job-title"><?= e($job['title']) ?></h3>
+                        <p class="company-name">
+                            <i class="fas fa-building" style="opacity:.5;font-size:.85rem;margin-right:.3rem;"></i>
+                            <?= e($job['company_name']) ?>
+                        </p>
+
+                        <div class="job-details">
+                            <span>
+                                <i class="fas fa-map-marker-alt"></i>
+                                <?= e($job['city']) ?>, <?= e($job['country']) ?>
+                            </span>
+                            <span class="job-salary">
+                                <i class="fas fa-wallet"></i>
+                                <?= e(format_money((float) $job['salary_min'], $job['salary_period'])) ?>
+                            </span>
+                        </div>
+
+                        <?php
+                            $rawTags = array_slice(
+                                array_filter(array_map('trim', explode(',', (string) $job['tags']))),
+                                0, 3
+                            );
+                        ?>
+                        <?php if ($rawTags): ?>
+                            <div class="job-tags">
+                                <?php foreach ($rawTags as $tag): ?>
+                                    <span><?= e($tag) ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="job-footer">
+                            <span class="job-time">
+                                <i class="far fa-clock"></i>
+                                Jusqu'au <?= e(format_datetime($job['expires_at'])) ?>
+                            </span>
+                            <a href="/views/job-details.php?id=<?= (int) $job['id'] ?>" class="btn btn-apply">
+                                Voir l'offre
+                            </a>
+                        </div>
+
+                    </article>
+                <?php endforeach; ?>
+            </div>
+
+            <?php if ($hasMore): ?>
+                <div class="load-more" style="text-align:center;margin-top:2rem;">
+                    <button id="btn-voir-plus" class="btn btn-outline" style="padding:14px 40px;font-size:15px;">
+                        <i class="fas fa-chevron-down" style="margin-right:.5rem;"></i>
+                        Voir plus d'offres
+                        <span style="margin-left:.4rem;opacity:.6;font-size:13px;">(<?= count($jobs) - $visibleLimit ?> restantes)</span>
+                    </button>
+                </div>
+                <script>
+                document.getElementById('btn-voir-plus').addEventListener('click', function() {
+                    document.querySelectorAll('.job-card-hidden').forEach(function(card) {
+                        card.classList.remove('job-card-hidden');
+                        card.style.animation = 'fadeInUp 0.4s ease forwards';
+                    });
+                    this.parentElement.style.display = 'none';
+                });
+                </script>
+            <?php endif; ?>
+        <?php endif; ?>
+
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     FEATURES
+════════════════════════════════════════════════════ -->
+<section class="feature-spotlight">
+    <div class="container">
+        <h2 class="section-title" style="text-align:center;margin-bottom:2.5rem;">
+            <span class="section-title-accent">Pourquoi JobHub&nbsp;?</span>
+        </h2>
+        <div class="feature-grid">
+            <article class="feature-card">
+                <span class="feature-icon"><i class="fas fa-layer-group"></i></span>
+                <h3>Recherche puissante</h3>
+                <p>Filtres combinés par mot-clé, ville, secteur et type de contrat — résultats instantanés depuis la base de données.</p>
+            </article>
+            <article class="feature-card">
+                <span class="feature-icon"><i class="fas fa-bolt"></i></span>
+                <h3>Parcours sans friction</h3>
+                <p>De la découverte d'une offre à la candidature : un parcours testé, fluide et accessible depuis n'importe quel appareil.</p>
+            </article>
+            <article class="feature-card">
+                <span class="feature-icon"><i class="fas fa-shield-alt"></i></span>
+                <h3>Plateforme de confiance</h3>
+                <p>Sessions sécurisées, protection CSRF, uploads contrôlés — votre compte et vos données sont protégés à chaque étape.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     HOW IT WORKS
+════════════════════════════════════════════════════ -->
+<section class="how-it-works">
+    <div class="container">
+        <h2 class="section-title">
+            <span class="section-title-accent">Comment ça marche&nbsp;?</span>
+        </h2>
+        <p class="section-subtitle">
+            Trois étapes simples pour trouver un emploi ou recruter le bon candidat.
+        </p>
+
+        <div class="steps-grid">
+
+            <div class="step-card">
+                <div class="step-number">
+                    <span class="step-icon">01</span>
+                </div>
+                <h3>Créez votre compte</h3>
+                <p>Inscrivez-vous en tant que candidat pour postuler, ou en tant qu'entreprise pour publier et gérer vos offres.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-number">
+                    <span class="step-icon">02</span>
+                </div>
+                <h3>Explorez ou publiez</h3>
+                <p>Parcourez des centaines d'offres filtrées selon vos critères, ou publiez votre annonce en quelques minutes.</p>
+            </div>
+
+            <div class="step-card">
+                <div class="step-number">
+                    <span class="step-icon">03</span>
+                </div>
+                <h3>Connectez-vous</h3>
+                <p>Postulez en un clic et suivez vos candidatures, ou gérez les profils reçus depuis votre tableau de bord entreprise.</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     CTA
+════════════════════════════════════════════════════ -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-content">
+            <h2>Prêt à franchir le pas&nbsp;?</h2>
+            <p>
+                Rejoignez des milliers de candidats et d'entreprises qui font confiance à JobHub pour leurs recrutements au Cameroun.
+            </p>
+            <div class="hero-inline-actions">
+                <a href="<?= e($viewsPath) ?>/inscription.php" class="btn btn-light">
+                    <i class="fas fa-user-plus" style="margin-right:.45rem;"></i>Créer un compte gratuit
+                </a>
+                <a href="<?= e($viewsPath) ?>/poster-offre.php" class="btn btn-outline cta-outline">
+                    <i class="fas fa-pen-to-square" style="margin-right:.45rem;"></i>Publier une offre
+                </a>
             </div>
         </div>
-    </footer>
+    </div>
+</section>
 
-    <script src="views/js/alerts.js"></script>
-    <script src="views/js/update-alerts.js"></script>
-    <script src="views/js/main.js"></script>
-</body>
-</html>
+<?php require __DIR__ . '/app/views/footer.php'; ?>

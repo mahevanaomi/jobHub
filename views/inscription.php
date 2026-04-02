@@ -1,292 +1,239 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inscription - JobHub</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-    <!-- HEADER -->
-    <header class="header">
-        <div class="container">
-            <nav class="navbar">
-                <div class="logo">
-                    <i class="fas fa-briefcase"></i>
-                    <a href="index.html"><span>Job<strong>Hub</strong></span></a>
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../app/bootstrap.php';
+
+guest_only();
+
+if (is_post()) {
+    verify_csrf($_POST['_csrf'] ?? null);
+
+    $data = [
+        'account_type' => $_POST['account_type'] ?? 'candidate',
+        'first_name' => trim($_POST['first_name'] ?? ''),
+        'last_name' => trim($_POST['last_name'] ?? ''),
+        'email' => trim($_POST['email'] ?? ''),
+        'password' => $_POST['password'] ?? '',
+        'password_confirmation' => $_POST['password_confirmation'] ?? '',
+        'phone' => trim($_POST['phone'] ?? ''),
+        'city' => trim($_POST['city'] ?? ''),
+        'country' => trim($_POST['country'] ?? ''),
+        'headline' => trim($_POST['headline'] ?? ''),
+        'experience_level' => trim($_POST['experience_level'] ?? ''),
+        'skills' => trim($_POST['skills'] ?? ''),
+        'bio' => trim($_POST['bio'] ?? ''),
+        'linkedin_url' => trim($_POST['linkedin_url'] ?? ''),
+        'github_url' => trim($_POST['github_url'] ?? ''),
+        'portfolio_url' => trim($_POST['portfolio_url'] ?? ''),
+        'company_name' => trim($_POST['company_name'] ?? ''),
+        'industry' => trim($_POST['industry'] ?? ''),
+        'company_size' => trim($_POST['company_size'] ?? ''),
+        'company_description' => trim($_POST['company_description'] ?? ''),
+        'website_url' => trim($_POST['website_url'] ?? ''),
+        'alerts_enabled' => $_POST['alerts_enabled'] ?? '1',
+        'newsletter_enabled' => $_POST['newsletter_enabled'] ?? '1',
+    ];
+
+    remember_old_input($data);
+
+    if (!$data['first_name'] || !$data['last_name'] || !$data['email'] || !$data['password'] || !$data['phone'] || !$data['city'] || !$data['country']) {
+        flash('error', 'Merci de remplir tous les champs obligatoires.');
+        redirect('/views/inscription.php');
+    }
+
+    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        flash('error', 'Adresse email invalide.');
+        redirect('/views/inscription.php');
+    }
+
+    if ($data['password'] !== $data['password_confirmation']) {
+        flash('error', 'Les mots de passe ne correspondent pas.');
+        redirect('/views/inscription.php');
+    }
+
+    if (find_user_by_email($data['email'])) {
+        flash('error', 'Cette adresse email est déjà utilisée.');
+        redirect('/views/inscription.php');
+    }
+
+    if ($data['account_type'] === 'company') {
+        if (!$data['company_name']) {
+            flash('error', 'Le nom de l\'entreprise est obligatoire.');
+            redirect('/views/inscription.php');
+        }
+        $userId = create_company_account($data);
+    } else {
+        $userId = create_candidate_account($data);
+    }
+
+    login_user(find_user_by_id($userId));
+    clear_old_input();
+    flash('success', 'Compte créé avec succès.');
+    redirect($data['account_type'] === 'company' ? '/views/dashboard-entreprise.php' : '/views/dashboard-candidat.php');
+}
+
+$pageTitle = 'Inscription - JobHub';
+$assetBase = '..';
+$rootPath = '/index.php';
+$viewsPath = '.';
+
+require __DIR__ . '/../app/views/header.php';
+?>
+
+<section class="page-header page-header-rich">
+    <div class="container">
+        <div class="page-header-inner">
+            <span class="page-eyebrow">Onboarding PHP natif</span>
+            <h1>Créer un compte</h1>
+            <p>Choisis ton espace et démarre avec une vraie persistance en base.</p>
+            <div class="page-header-pills">
+                <span>Espace candidat</span>
+                <span>Espace entreprise</span>
+                <span>Connexion directe après création</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="inscription-section">
+    <div class="container">
+        <div class="auth-shell">
+            <aside class="auth-intro">
+                <span class="page-eyebrow">Choix guidé</span>
+                <h2>Une inscription pensée pour lancer un vrai usage, pas juste une démo.</h2>
+                <p>Le compte candidat ouvre le suivi des candidatures et des recommandations. Le compte entreprise active la publication d'offres, la gestion du profil et le traitement des candidatures.</p>
+                <div class="auth-metrics">
+                    <div class="metric-chip"><strong>74+</strong><span>comptes de test</span></div>
+                    <div class="metric-chip"><strong>123</strong><span>offres en base</span></div>
+                    <div class="metric-chip"><strong>221</strong><span>candidatures suivies</span></div>
                 </div>
-                <ul class="nav-menu">
-                    <li><a href="index.html#home" class="nav-link">Accueil</a></li>
-                    <li><a href="index.html#jobs" class="nav-link">Emplois</a></li>
-                    <li><a href="index.html#categories" class="nav-link">Catégories</a></li>
-                    <li><a href="about.html" class="nav-link">À Propos</a></li>
-                    <li><a href="contact.html" class="nav-link">Contact</a></li>
+                <ul class="auth-list">
+                    <li>Connexion automatique après création du compte</li>
+                    <li>Structure adaptée aux deux rôles métier</li>
+                    <li>Profils déjà reliés aux dashboards et aux offres</li>
                 </ul>
-                <div class="nav-buttons">
-                    <a href="login.html" class="btn btn-outline">Connexion</a>
-                    <a href="inscription.html" class="btn btn-primary">Inscription</a>
-                </div>
-                <div class="hamburger">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </nav>
-        </div>
-    </header>
+            </aside>
 
-    <!-- PAGE HEADER -->
-    <section class="page-header">
-        <div class="container">
-            <h1>Rejoignez JobHub</h1>
-            <p>Créez votre compte et accédez à des milliers d'opportunités</p>
-        </div>
-    </section>
-
-    <!-- INSCRIPTION SECTION -->
-    <section class="inscription-section">
-        <div class="container">
             <div class="inscription-container">
-                <h2 class="section-title">Choisissez votre type de compte</h2>
-                <p class="section-subtitle">Sélectionnez le type de compte qui correspond à vos besoins</p>
+            <form method="post" class="inscription-form">
+                <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
-                <div class="account-type-selection">
-                    <div class="account-type-card active" data-type="candidat">
-                        <div class="account-type-icon">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <h3>Je cherche un emploi</h3>
-                        <p>Créez votre profil, postulez aux offres et trouvez votre emploi idéal</p>
+                <div class="form-group">
+                    <label for="account_type">Type de compte</label>
+                    <select id="account_type" name="account_type" required>
+                        <option value="candidate" <?= old('account_type', 'candidate') === 'candidate' ? 'selected' : '' ?>>Candidat</option>
+                        <option value="company" <?= old('account_type') === 'company' ? 'selected' : '' ?>>Entreprise</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="first_name">Prénom</label>
+                        <input type="text" id="first_name" name="first_name" required value="<?= e(old('first_name')) ?>">
                     </div>
-
-                    <div class="account-type-card" data-type="entreprise">
-                        <div class="account-type-icon">
-                            <i class="fas fa-building"></i>
-                        </div>
-                        <h3>Je recrute des talents</h3>
-                        <p>Publiez vos offres d'emploi et trouvez les meilleurs candidats</p>
+                    <div class="form-group">
+                        <label for="last_name">Nom</label>
+                        <input type="text" id="last_name" name="last_name" required value="<?= e(old('last_name')) ?>">
                     </div>
                 </div>
 
-                <form class="inscription-form" id="inscriptionForm">
-                    <h3 style="margin-bottom: 25px; font-size: 24px;">Informations personnelles</h3>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required value="<?= e(old('email')) ?>">
+                </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="prenom">Prénom *</label>
-                            <input type="text" id="prenom" name="prenom" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="nom">Nom *</label>
-                            <input type="text" id="nom" name="nom" required>
-                        </div>
-                    </div>
-
+                <div class="form-row">
                     <div class="form-group">
-                        <label for="email">Email *</label>
-                        <input type="email" id="email" name="email" required>
+                        <label for="password">Mot de passe</label>
+                        <input type="password" id="password" name="password" required>
                     </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="password">Mot de passe *</label>
-                            <input type="password" id="password" name="password" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="confirmPassword">Confirmer le mot de passe *</label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" required>
-                        </div>
-                    </div>
-
                     <div class="form-group">
-                        <label for="telephone">Téléphone *</label>
-                        <input type="tel" id="telephone" name="telephone" required>
+                        <label for="password_confirmation">Confirmation</label>
+                        <input type="password" id="password_confirmation" name="password_confirmation" required>
                     </div>
+                </div>
 
-                    <!-- CHAMPS POUR CANDIDATS -->
-                    <div class="candidate-field">
-                        <h3 style="margin: 30px 0 25px; font-size: 24px;">Informations professionnelles</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phone">Téléphone</label>
+                        <input type="text" id="phone" name="phone" required value="<?= e(old('phone')) ?>">
+                    </div>
+                    <div class="form-group">
+                        <label for="city">Ville</label>
+                        <input type="text" id="city" name="city" required value="<?= e(old('city')) ?>">
+                    </div>
+                </div>
 
+                <div class="form-group">
+                    <label for="country">Pays</label>
+                    <input type="text" id="country" name="country" required value="<?= e(old('country', 'Cameroun')) ?>">
+                </div>
+
+                <div class="form-grid-two">
+                    <div class="form-panel">
+                        <h3>Candidat</h3>
                         <div class="form-group">
-                            <label for="titre">Titre professionnel *</label>
-                            <input type="text" id="titre" name="titre" placeholder="Ex: Développeur Full Stack">
+                            <label for="headline">Titre professionnel</label>
+                            <input type="text" id="headline" name="headline" value="<?= e(old('headline')) ?>">
                         </div>
-
                         <div class="form-group">
-                            <label for="experience">Années d'expérience</label>
-                            <select id="experience" name="experience">
-                                <option value="">Sélectionnez...</option>
-                                <option value="0-1">Moins d'un an</option>
-                                <option value="1-3">1 à 3 ans</option>
-                                <option value="3-5">3 à 5 ans</option>
-                                <option value="5-10">5 à 10 ans</option>
-                                <option value="10+">Plus de 10 ans</option>
+                            <label for="experience_level">Expérience</label>
+                            <select id="experience_level" name="experience_level">
+                                <option value="">Sélectionner</option>
+                                <?php foreach (['0-1', '1-3', '3-5', '5-10', '10+'] as $level): ?>
+                                    <option value="<?= e($level) ?>" <?= old('experience_level') === $level ? 'selected' : '' ?>><?= e($level) ?> ans</option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
-
                         <div class="form-group">
-                            <label for="competences">Compétences principales</label>
-                            <input type="text" id="competences" name="competences" placeholder="Ex: JavaScript, React, Node.js...">
+                            <label for="skills">Compétences</label>
+                            <input type="text" id="skills" name="skills" value="<?= e(old('skills')) ?>">
                         </div>
-
                         <div class="form-group">
-                            <label for="cv">CV (optionnel)</label>
-                            <input type="file" id="cv" name="cv" accept=".pdf,.doc,.docx">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="bio">Bio / Présentation</label>
-                            <textarea id="bio" name="bio" placeholder="Parlez-nous de vous, de votre parcours et de vos objectifs professionnels..."></textarea>
+                            <label for="bio">Bio</label>
+                            <textarea id="bio" name="bio"><?= e(old('bio')) ?></textarea>
                         </div>
                     </div>
 
-                    <!-- CHAMPS POUR ENTREPRISES -->
-                    <div class="company-field" style="display: none;">
-                        <h3 style="margin: 30px 0 25px; font-size: 24px;">Informations sur l'entreprise</h3>
-
+                    <div class="form-panel">
+                        <h3>Entreprise</h3>
                         <div class="form-group">
-                            <label for="nomEntreprise">Nom de l'entreprise *</label>
-                            <input type="text" id="nomEntreprise" name="nomEntreprise">
+                            <label for="company_name">Nom de l'entreprise</label>
+                            <input type="text" id="company_name" name="company_name" value="<?= e(old('company_name')) ?>">
                         </div>
-
                         <div class="form-group">
-                            <label for="secteur">Secteur d'activité</label>
-                            <select id="secteur" name="secteur">
-                                <option value="">Sélectionnez...</option>
-                                <option value="technologie">Technologie</option>
-                                <option value="finance">Finance</option>
-                                <option value="sante">Santé</option>
-                                <option value="education">Éducation</option>
-                                <option value="commerce">Commerce</option>
-                                <option value="industrie">Industrie</option>
-                                <option value="services">Services</option>
-                                <option value="autre">Autre</option>
+                            <label for="industry">Secteur</label>
+                            <input type="text" id="industry" name="industry" value="<?= e(old('industry')) ?>">
+                        </div>
+                        <div class="form-group">
+                            <label for="company_size">Taille</label>
+                            <select id="company_size" name="company_size">
+                                <option value="">Sélectionner</option>
+                                <?php foreach (['1-10', '11-50', '51-200', '201-500', '500+'] as $size): ?>
+                                    <option value="<?= e($size) ?>" <?= old('company_size') === $size ? 'selected' : '' ?>><?= e($size) ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
-
                         <div class="form-group">
-                            <label for="taille">Taille de l'entreprise</label>
-                            <select id="taille" name="taille">
-                                <option value="">Sélectionnez...</option>
-                                <option value="1-10">1 à 10 employés</option>
-                                <option value="11-50">11 à 50 employés</option>
-                                <option value="51-200">51 à 200 employés</option>
-                                <option value="201-500">201 à 500 employés</option>
-                                <option value="500+">Plus de 500 employés</option>
-                            </select>
+                            <label for="website_url">Site web</label>
+                            <input type="url" id="website_url" name="website_url" value="<?= e(old('website_url')) ?>">
                         </div>
-
                         <div class="form-group">
-                            <label for="siteWeb">Site web de l'entreprise</label>
-                            <input type="url" id="siteWeb" name="siteWeb" placeholder="https://www.exemple.com">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="descriptionEntreprise">Description de l'entreprise</label>
-                            <textarea id="descriptionEntreprise" name="descriptionEntreprise" placeholder="Présentez votre entreprise, sa mission et ses valeurs..."></textarea>
+                            <label for="company_description">Description entreprise</label>
+                            <textarea id="company_description" name="company_description"><?= e(old('company_description')) ?></textarea>
                         </div>
                     </div>
+                </div>
 
-                    <div class="form-group">
-                        <label for="ville">Ville *</label>
-                        <input type="text" id="ville" name="ville" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="pays">Pays *</label>
-                        <select id="pays" name="pays" required>
-                            <option value="">Sélectionnez...</option>
-                            <option value="france" selected>France</option>
-                            <option value="belgique">Belgique</option>
-                            <option value="suisse">Suisse</option>
-                            <option value="canada">Canada</option>
-                            <option value="autre">Autre</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group" style="margin-top: 20px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" required style="width: auto;">
-                            <span>J'accepte les conditions d'utilisation et la politique de confidentialité *</span>
-                        </label>
-                    </div>
-
-                    <div class="form-group" style="margin-top: 10px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" style="width: auto;">
-                            <span>Je souhaite recevoir des alertes emploi et des actualités par email</span>
-                        </label>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-user-plus"></i> Créer mon compte
-                        </button>
-                    </div>
-
-                    <p style="text-align: center; margin-top: 20px; color: #6b7280;">
-                        Vous avez déjà un compte ?
-                        <a href="#" style="color: #3b82f6; font-weight: 600;">Connectez-vous</a>
-                    </p>
-                </form>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Créer mon compte</button>
+                </div>
+                <p class="auth-switch">Déjà inscrit ? <a href="/views/login.php">Se connecter</a></p>
+            </form>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- FOOTER -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-col">
-                    <div class="logo">
-                        <i class="fas fa-briefcase"></i>
-                        <span>Job<strong>Hub</strong></span>
-                    </div>
-                    <p>Votre plateforme de référence pour trouver l'emploi idéal ou recruter les meilleurs talents.</p>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-linkedin"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                    </div>
-                </div>
-                <div class="footer-col">
-                    <h3>Pour les Candidats</h3>
-                    <ul>
-                        <li><a href="#">Rechercher un Emploi</a></li>
-                        <li><a href="#">Créer un Profil</a></li>
-                        <li><a href="#">Télécharger CV</a></li>
-                        <li><a href="#">Alertes Emploi</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h3>Pour les Entreprises</h3>
-                    <ul>
-                        <li><a href="#">Publier une Offre</a></li>
-                        <li><a href="#">Rechercher des Talents</a></li>
-                        <li><a href="#">Plans & Tarifs</a></li>
-                        <li><a href="#">Espace Entreprise</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h3>À Propos</h3>
-                    <ul>
-                        <li><a href="#">Qui sommes-nous ?</a></li>
-                        <li><a href="#">Nous Contacter</a></li>
-                        <li><a href="#">Conditions d'utilisation</a></li>
-                        <li><a href="#">Politique de confidentialité</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 JobHub. Tous droits réservés.</p>
-            </div>
-        </div>
-    </footer>
-
-    <script src="js/alerts.js"></script>
-    <script src="js/update-alerts.js"></script>
-    <script src="js/main.js"></script>
-</body>
-</html>
+<?php require __DIR__ . '/../app/views/footer.php'; ?>

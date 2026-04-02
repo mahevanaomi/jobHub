@@ -1,261 +1,237 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Profil - JobHub</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-    <!-- HEADER -->
-    <header class="header">
-        <div class="container">
-            <nav class="navbar">
-                <div class="logo">
-                    <i class="fas fa-briefcase"></i>
-                    <a href="index.html"><span>Job<strong>Hub</strong></span></a>
-                </div>
-                <ul class="nav-menu">
-                    <li><a href="index.html#home" class="nav-link">Accueil</a></li>
-                    <li><a href="index.html#jobs" class="nav-link">Emplois</a></li>
-                    <li><a href="dashboard-candidat.html" class="nav-link">Mon Dashboard</a></li>
-                    <li><a href="contact.html" class="nav-link">Contact</a></li>
-                </ul>
-                <div class="nav-buttons">
-                    <a href="profil-candidat.html" class="btn btn-outline"><i class="fas fa-user"></i> Mon Profil</a>
-                    <a href="#" onclick="logout()" class="btn btn-primary"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
-                </div>
-                <div class="hamburger">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </nav>
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/../app/bootstrap.php';
+
+$user = require_auth('candidate');
+$profile = get_candidate_profile((int) $user['id']);
+
+if (is_post()) {
+    verify_csrf($_POST['_csrf'] ?? null);
+
+    $data = [
+        'first_name' => trim($_POST['first_name'] ?? ''),
+        'last_name' => trim($_POST['last_name'] ?? ''),
+        'email' => trim($_POST['email'] ?? ''),
+        'phone' => trim($_POST['phone'] ?? ''),
+        'birth_date' => trim($_POST['birth_date'] ?? ''),
+        'city' => trim($_POST['city'] ?? ''),
+        'country' => trim($_POST['country'] ?? ''),
+        'headline' => trim($_POST['headline'] ?? ''),
+        'experience_level' => trim($_POST['experience_level'] ?? ''),
+        'skills' => trim($_POST['skills'] ?? ''),
+        'bio' => trim($_POST['bio'] ?? ''),
+        'linkedin_url' => trim($_POST['linkedin_url'] ?? ''),
+        'github_url' => trim($_POST['github_url'] ?? ''),
+        'portfolio_url' => trim($_POST['portfolio_url'] ?? ''),
+        'alerts_enabled' => $_POST['alerts_enabled'] ?? '',
+        'visibility' => $_POST['visibility'] ?? '',
+        'newsletter_enabled' => $_POST['newsletter_enabled'] ?? '',
+    ];
+
+    try {
+        $data['cv_filename'] = upload_file($_FILES['cv_file'] ?? [], 'cv', ['pdf', 'doc', 'docx'], 10 * 1024 * 1024);
+    } catch (RuntimeException $e) {
+        flash('error', $e->getMessage());
+        redirect('/views/profil-candidat.php');
+    }
+
+    update_candidate_profile((int) $user['id'], $data);
+    flash('success', 'Profil candidat mis à jour.');
+    redirect('/views/profil-candidat.php');
+}
+
+$profile = get_candidate_profile((int) $user['id']);
+$skills = array_values(array_filter(array_map('trim', explode(',', (string) ($profile['skills'] ?? '')))));
+$profileSignals = [
+    $profile['headline'] ?? '',
+    $profile['bio'] ?? '',
+    $profile['skills'] ?? '',
+    $profile['city'] ?? '',
+    $profile['linkedin_url'] ?? '',
+    $profile['github_url'] ?? '',
+    $profile['portfolio_url'] ?? '',
+    $profile['cv_filename'] ?? '',
+];
+$profileCompletion = (int) round((count(array_filter($profileSignals)) / count($profileSignals)) * 100);
+
+$pageTitle = 'Profil Candidat - JobHub';
+$assetBase = '..';
+$rootPath = '/index.php';
+$viewsPath = '.';
+
+require __DIR__ . '/../app/views/header.php';
+?>
+
+<section class="page-header page-header-rich">
+    <div class="container">
+        <div class="page-header-inner">
+            <span class="page-eyebrow">Profil candidat</span>
+            <h1>Mon profil candidat</h1>
+            <p>Un espace mieux guidé pour présenter clairement ton identité, ton positionnement, tes preuves et ta visibilité.</p>
+            <div class="page-header-pills">
+                <span><?= $profileCompletion ?>% complété</span>
+                <span><?= !empty($profile['cv_filename']) ? 'CV disponible' : 'CV à ajouter' ?></span>
+                <span><?= e($profile['city'] ?: 'Ville à compléter') ?></span>
+            </div>
         </div>
-    </header>
+    </div>
+</section>
 
-    <!-- PAGE HEADER -->
-    <section class="page-header">
-        <div class="container">
-            <h1><i class="fas fa-user-circle"></i> Mon Profil</h1>
-            <p>Gérez vos informations personnelles et professionnelles</p>
-        </div>
-    </section>
+<section class="inscription-section">
+    <div class="container">
+        <div class="editor-shell">
+            <aside class="editor-sidebar">
+                <article class="editor-panel editor-panel-dark">
+                    <span class="panel-label">Résumé candidat</span>
+                    <h2><?= e(trim(($profile['first_name'] ?? '') . ' ' . ($profile['last_name'] ?? ''))) ?></h2>
+                    <p><?= e($profile['headline'] ?: 'Ajoute un titre professionnel clair pour inspirer confiance dès la première lecture.') ?></p>
+                    <progress class="progress-meter" max="100" value="<?= $profileCompletion ?>"><?= $profileCompletion ?>%</progress>
+                </article>
 
-    <!-- PROFILE CONTENT -->
-    <section class="inscription-section">
-        <div class="container">
-            <div class="inscription-container" style="max-width: 900px;">
-                <form class="inscription-form" id="profilForm">
-                    <!-- PHOTO DE PROFIL -->
-                    <div style="text-align: center; margin-bottom: 40px;">
-                        <div style="width: 120px; height: 120px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: white; font-size: 48px; font-weight: 700;">
-                            <span id="initiales">JD</span>
+                <article class="editor-panel">
+                    <span class="panel-label">Points clés</span>
+                    <ul class="check-list">
+                        <li><?= !empty($profile['cv_filename']) ? 'CV téléversé et partageable.' : 'Téléverser un CV professionnel.' ?></li>
+                        <li><?= !empty($profile['bio']) ? 'Bio renseignée.' : 'Rédiger une bio plus convaincante.' ?></li>
+                        <li><?= !empty($skills) ? 'Compétences listées.' : 'Ajouter des compétences concrètes.' ?></li>
+                        <li><?= (int) ($profile['visibility'] ?? 0) === 1 ? 'Profil visible.' : 'Activer la visibilité du profil.' ?></li>
+                    </ul>
+                </article>
+
+                <?php if ($skills): ?>
+                    <article class="editor-panel">
+                        <span class="panel-label">Compétences visibles</span>
+                        <div class="skill-cloud">
+                            <?php foreach ($skills as $skill): ?>
+                                <span><?= e($skill) ?></span>
+                            <?php endforeach; ?>
                         </div>
-                        <button type="button" class="btn btn-outline" onclick="alert('Fonctionnalité de changement de photo bientôt disponible !')">
-                            <i class="fas fa-camera"></i> Changer la photo
-                        </button>
-                    </div>
+                    </article>
+                <?php endif; ?>
+            </aside>
 
-                    <h3 style="margin-bottom: 25px; font-size: 24px;"><i class="fas fa-user"></i> Informations personnelles</h3>
+            <div class="editor-main">
+                <form method="post" enctype="multipart/form-data" class="inscription-form form-workspace">
+                    <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="prenom">Prénom *</label>
-                            <input type="text" id="prenom" name="prenom" required value="Jean">
+                    <section class="form-section-card">
+                        <div class="form-section-head">
+                            <h2>Identité</h2>
+                            <p>Les éléments de base affichés dans l’espace et les candidatures.</p>
+                        </div>
+                        <div class="form-section-grid form-section-grid-2">
+                            <div class="form-group">
+                                <label>Prénom</label>
+                                <input type="text" name="first_name" required value="<?= e($profile['first_name']) ?>">
+                            </div>
+                            <div class="form-group">
+                                <label>Nom</label>
+                                <input type="text" name="last_name" required value="<?= e($profile['last_name']) ?>">
+                            </div>
+                        </div>
+                        <div class="form-section-grid form-section-grid-2">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" name="email" required value="<?= e($profile['email']) ?>">
+                            </div>
+                            <div class="form-group">
+                                <label>Téléphone</label>
+                                <input type="text" name="phone" value="<?= e($profile['phone']) ?>">
+                            </div>
+                        </div>
+                        <div class="form-section-grid form-section-grid-3">
+                            <div class="form-group">
+                                <label>Date de naissance</label>
+                                <input type="date" name="birth_date" value="<?= e($profile['birth_date']) ?>">
+                            </div>
+                            <div class="form-group">
+                                <label>Ville</label>
+                                <input type="text" name="city" value="<?= e($profile['city']) ?>">
+                            </div>
+                            <div class="form-group">
+                                <label>Pays</label>
+                                <input type="text" name="country" value="<?= e($profile['country']) ?>">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="form-section-card">
+                        <div class="form-section-head">
+                            <h2>Positionnement professionnel</h2>
+                            <p>Ce qui aide les recruteurs à te comprendre rapidement.</p>
                         </div>
                         <div class="form-group">
-                            <label for="nom">Nom *</label>
-                            <input type="text" id="nom" name="nom" required value="Dupont">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="email">Email *</label>
-                        <input type="email" id="email" name="email" required value="jean.dupont@email.com">
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="telephone">Téléphone *</label>
-                            <input type="tel" id="telephone" name="telephone" required value="+33 6 12 34 56 78">
+                            <label>Titre professionnel</label>
+                            <input type="text" name="headline" value="<?= e($profile['headline']) ?>">
                         </div>
                         <div class="form-group">
-                            <label for="dateNaissance">Date de naissance</label>
-                            <input type="date" id="dateNaissance" name="dateNaissance" value="1990-05-15">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="ville">Ville *</label>
-                            <input type="text" id="ville" name="ville" required value="Paris">
-                        </div>
-                        <div class="form-group">
-                            <label for="pays">Pays *</label>
-                            <select id="pays" name="pays" required>
-                                <option value="france" selected>France</option>
-                                <option value="belgique">Belgique</option>
-                                <option value="suisse">Suisse</option>
-                                <option value="canada">Canada</option>
+                            <label>Expérience</label>
+                            <select name="experience_level">
+                                <option value="">Sélectionner</option>
+                                <?php foreach (['0-1', '1-3', '3-5', '5-10', '10+'] as $level): ?>
+                                    <option value="<?= e($level) ?>" <?= $profile['experience_level'] === $level ? 'selected' : '' ?>><?= e($level) ?> ans</option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
-                    </div>
-
-                    <h3 style="margin: 40px 0 25px; font-size: 24px;"><i class="fas fa-briefcase"></i> Informations professionnelles</h3>
-
-                    <div class="form-group">
-                        <label for="titre">Titre professionnel *</label>
-                        <input type="text" id="titre" name="titre" required value="Développeur Full Stack Senior">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="experience">Années d'expérience</label>
-                        <select id="experience" name="experience">
-                            <option value="0-1">Moins d'un an</option>
-                            <option value="1-3">1 à 3 ans</option>
-                            <option value="3-5">3 à 5 ans</option>
-                            <option value="5-10" selected>5 à 10 ans</option>
-                            <option value="10+">Plus de 10 ans</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="competences">Compétences principales</label>
-                        <input type="text" id="competences" name="competences" value="JavaScript, React, Node.js, MongoDB, TypeScript">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="bio">Bio / Présentation</label>
-                        <textarea id="bio" name="bio" rows="5">Développeur Full Stack passionné avec plus de 5 ans d'expérience dans la création d'applications web modernes. Expert en JavaScript, React et Node.js. Toujours à la recherche de nouveaux défis techniques.</textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="cv">CV actuel</label>
-                        <div style="display: flex; gap: 15px; align-items: center;">
-                            <span style="color: #6b7280;"><i class="fas fa-file-pdf" style="color: #dc2626;"></i> jean_dupont_cv.pdf</span>
-                            <button type="button" class="btn btn-outline" style="padding: 8px 16px;" onclick="alert('CV téléchargé')">
-                                <i class="fas fa-download"></i> Télécharger
-                            </button>
-                            <button type="button" class="btn btn-primary" style="padding: 8px 16px;" onclick="alert('Sélectionnez un nouveau CV')">
-                                <i class="fas fa-upload"></i> Mettre à jour
-                            </button>
+                        <div class="form-group">
+                            <label>Compétences</label>
+                            <input type="text" name="skills" value="<?= e($profile['skills']) ?>">
                         </div>
-                    </div>
+                        <div class="form-group">
+                            <label>Bio</label>
+                            <textarea name="bio" rows="6"><?= e($profile['bio']) ?></textarea>
+                        </div>
+                    </section>
 
-                    <h3 style="margin: 40px 0 25px; font-size: 24px;"><i class="fas fa-link"></i> Liens professionnels</h3>
+                    <section class="form-section-card">
+                        <div class="form-section-head">
+                            <h2>Preuves et liens</h2>
+                            <p>Ajoute des éléments qui renforcent la confiance et la conversion.</p>
+                        </div>
+                        <div class="form-group">
+                            <label>CV</label>
+                            <input type="file" name="cv_file" accept=".pdf,.doc,.docx">
+                            <?php if (!empty($profile['cv_filename'])): ?>
+                                <p class="form-note">CV actuel : <a href="<?= e($profile['cv_filename']) ?>" target="_blank" rel="noreferrer">ouvrir le fichier</a></p>
+                            <?php endif; ?>
+                        </div>
+                        <div class="form-section-grid form-section-grid-2">
+                            <div class="form-group">
+                                <label>LinkedIn</label>
+                                <input type="url" name="linkedin_url" value="<?= e($profile['linkedin_url']) ?>">
+                            </div>
+                            <div class="form-group">
+                                <label>GitHub</label>
+                                <input type="url" name="github_url" value="<?= e($profile['github_url']) ?>">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Portfolio</label>
+                            <input type="url" name="portfolio_url" value="<?= e($profile['portfolio_url']) ?>">
+                        </div>
+                    </section>
 
-                    <div class="form-group">
-                        <label for="linkedin">LinkedIn</label>
-                        <input type="url" id="linkedin" name="linkedin" placeholder="https://linkedin.com/in/votre-profil" value="https://linkedin.com/in/jean-dupont">
-                    </div>
+                    <section class="form-section-card">
+                        <div class="form-section-head">
+                            <h2>Préférences</h2>
+                            <p>Règles de visibilité et d’alertes pour ton espace candidat.</p>
+                        </div>
+                        <div class="check-stack">
+                            <label><input type="checkbox" name="alerts_enabled" value="1" <?= (int) $profile['alerts_enabled'] === 1 ? 'checked' : '' ?>> Recevoir les alertes emploi</label>
+                            <label><input type="checkbox" name="visibility" value="1" <?= (int) $profile['visibility'] === 1 ? 'checked' : '' ?>> Rendre le profil visible</label>
+                            <label><input type="checkbox" name="newsletter_enabled" value="1" <?= (int) $profile['newsletter_enabled'] === 1 ? 'checked' : '' ?>> Recevoir la newsletter</label>
+                        </div>
+                    </section>
 
-                    <div class="form-group">
-                        <label for="github">GitHub</label>
-                        <input type="url" id="github" name="github" placeholder="https://github.com/votre-username" value="https://github.com/jeandupont">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="portfolio">Portfolio / Site Web</label>
-                        <input type="url" id="portfolio" name="portfolio" placeholder="https://votre-site.com" value="https://jeandupont.dev">
-                    </div>
-
-                    <h3 style="margin: 40px 0 25px; font-size: 24px;"><i class="fas fa-cog"></i> Préférences</h3>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="alertesEmail" name="alertesEmail" checked style="width: auto; margin-right: 8px;">
-                            Recevoir des alertes emploi par email
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="profilPublic" name="profilPublic" checked style="width: auto; margin-right: 8px;">
-                            Rendre mon profil visible aux recruteurs
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="newsletter" name="newsletter" checked style="width: auto; margin-right: 8px;">
-                            Recevoir la newsletter JobHub
-                        </label>
-                    </div>
-
-                    <div class="form-actions" style="display: flex; gap: 15px; margin-top: 40px;">
-                        <button type="submit" class="btn btn-primary" style="flex: 1;">
-                            <i class="fas fa-save"></i> Enregistrer les modifications
-                        </button>
-                        <button type="button" class="btn btn-outline" onclick="window.location.href='dashboard-candidat.html'">
-                            <i class="fas fa-times"></i> Annuler
-                        </button>
-                    </div>
-
-                    <div style="margin-top: 40px; padding-top: 30px; border-top: 2px solid #e5e7eb;">
-                        <button type="button" class="btn btn-outline" onclick="if(confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) alert('Compte supprimé')" style="color: #dc2626; border-color: #dc2626;">
-                            <i class="fas fa-trash"></i> Supprimer mon compte
-                        </button>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
                     </div>
                 </form>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- FOOTER -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-col">
-                    <div class="logo">
-                        <i class="fas fa-briefcase"></i>
-                        <span>Job<strong>Hub</strong></span>
-                    </div>
-                    <p>Votre plateforme de référence pour trouver l'emploi idéal ou recruter les meilleurs talents.</p>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-linkedin"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                    </div>
-                </div>
-                <div class="footer-col">
-                    <h3>Pour les Candidats</h3>
-                    <ul>
-                        <li><a href="index.html#jobs">Rechercher un Emploi</a></li>
-                        <li><a href="inscription.html">Créer un Profil</a></li>
-                        <li><a href="login.html">Mon Compte</a></li>
-                        <li><a href="dashboard-candidat.html">Mon Dashboard</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h3>Pour les Entreprises</h3>
-                    <ul>
-                        <li><a href="poster-offre.html">Publier une Offre</a></li>
-                        <li><a href="inscription.html">Créer un Compte</a></li>
-                        <li><a href="login.html">Espace Entreprise</a></li>
-                        <li><a href="contact.html">Nous Contacter</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h3>À Propos</h3>
-                    <ul>
-                        <li><a href="about.html">Qui sommes-nous ?</a></li>
-                        <li><a href="contact.html">Nous Contacter</a></li>
-                        <li><a href="#">Conditions d'utilisation</a></li>
-                        <li><a href="#">Politique de confidentialité</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 JobHub. Tous droits réservés.</p>
-            </div>
-        </div>
-    </footer>
-
-    <script src="js/alerts.js"></script>
-    <script src="js/update-alerts.js"></script>
-    <script src="js/main.js"></script>
-</body>
-</html>
+<?php require __DIR__ . '/../app/views/footer.php'; ?>

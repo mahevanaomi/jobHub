@@ -1,359 +1,140 @@
-// =========================
-// MOBILE MENU TOGGLE
-// =========================
+'use strict';
+
+// ── Mobile Menu ──────────────────────────────────────────────────
 const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
 const navButtons = document.querySelector('.nav-buttons');
+const header = document.querySelector('.header');
 
 if (hamburger) {
     hamburger.addEventListener('click', () => {
-        hamburger.classList.toggle('active');
-        navMenu.classList.toggle('active');
-        navButtons.classList.toggle('active');
+        const isOpen = hamburger.classList.toggle('active');
+        navMenu?.classList.toggle('active', isOpen);
+        navButtons?.classList.toggle('active', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
+    });
+
+    // Close menu when clicking a nav link
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            hamburger.classList.remove('active');
+            navMenu?.classList.remove('active');
+            navButtons?.classList.remove('active');
+            document.body.style.overflow = '';
+        });
     });
 }
 
-// =========================
-// SMOOTH SCROLLING
-// =========================
+// ── Smooth Scroll ────────────────────────────────────────────────
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
+    anchor.addEventListener('click', e => {
+        const href = anchor.getAttribute('href');
+        if (!href || href === '#') return;
+        const target = document.querySelector(href);
+        if (!target) return;
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
+        const offset = header ? header.offsetHeight + 20 : 80;
+        const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top, behavior: 'smooth' });
     });
 });
 
-// =========================
-// ACTIVE NAV LINK ON SCROLL
-// =========================
-const sections = document.querySelectorAll('section[id]');
-const navLinks = document.querySelectorAll('.nav-link');
-
-function activateNavLink() {
-    let scrollY = window.pageYOffset;
-
-    sections.forEach(section => {
-        const sectionHeight = section.offsetHeight;
-        const sectionTop = section.offsetTop - 100;
-        const sectionId = section.getAttribute('id');
-
-        if (scrollY > sectionTop && scrollY <= sectionTop + sectionHeight) {
-            navLinks.forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href') === `#${sectionId}`) {
-                    link.classList.add('active');
-                }
-            });
-        }
-    });
+// ── Header Scroll Effect ─────────────────────────────────────────
+if (header) {
+    let lastScroll = 0;
+    const onScroll = () => {
+        const y = window.scrollY;
+        header.classList.toggle('header-scrolled', y > 10);
+        lastScroll = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
 }
 
-window.addEventListener('scroll', activateNavLink);
+// ── Scroll Reveal ────────────────────────────────────────────────
+const revealElements = document.querySelectorAll(
+    '.category-card, .job-card, .content-card, .feature-card, .trust-pill, ' +
+    '.metric-card-premium, .surface-card, .application-item, .info-item, ' +
+    '.pipeline-item, .quick-link-card, .inline-action-card'
+);
 
-// =========================
-// JOB FILTERS
-// =========================
-const filterBtns = document.querySelectorAll('.filter-btn');
-const jobCards = document.querySelectorAll('.job-card');
-
-filterBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        // Remove active class from all buttons
-        filterBtns.forEach(b => b.classList.remove('active'));
-        // Add active class to clicked button
-        btn.classList.add('active');
-
-        const filter = btn.getAttribute('data-filter');
-
-        jobCards.forEach(card => {
-            const category = card.getAttribute('data-category');
-
-            if (filter === 'all' || category === filter) {
-                card.style.display = 'block';
-                card.style.opacity = '1';
-                card.style.animation = 'fadeIn 0.5s ease';
-            } else {
-                card.style.display = 'none';
-            }
+if ('IntersectionObserver' in window && revealElements.length) {
+    const revealObserver = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            entry.target.style.transitionProperty = 'opacity, transform';
+            entry.target.style.transitionDuration = '0.6s';
+            entry.target.style.transitionTimingFunction = 'cubic-bezier(0.22, 1, 0.36, 1)';
+            entry.target.classList.add('is-visible');
+            obs.unobserve(entry.target);
         });
+    }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+
+    revealElements.forEach((el, i) => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(24px)';
+        el.style.transitionDelay = `${Math.min(i * 0.04, 0.24)}s`;
+        revealObserver.observe(el);
     });
+}
+
+// ── Flash Message Auto-dismiss ───────────────────────────────────
+document.querySelectorAll('.flash').forEach(flash => {
+    setTimeout(() => {
+        flash.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+        flash.style.opacity = '0';
+        flash.style.transform = 'translateY(-10px)';
+        setTimeout(() => flash.remove(), 400);
+    }, 5000);
 });
 
-// =========================
-// SEARCH FUNCTIONALITY
-// =========================
-const searchInput = document.getElementById('searchInput');
-const locationInput = document.getElementById('locationInput');
-const searchBtn = document.querySelector('.btn-search');
-
-if (searchBtn) {
-    searchBtn.addEventListener('click', () => {
-        const searchTerm = searchInput.value.toLowerCase();
-        const location = locationInput.value.toLowerCase();
-
-        jobCards.forEach(card => {
-            const jobTitle = card.querySelector('.job-title').textContent.toLowerCase();
-            const jobLocation = card.querySelector('.job-details span').textContent.toLowerCase();
-            const companyName = card.querySelector('.company-name').textContent.toLowerCase();
-
-            const matchesSearch = jobTitle.includes(searchTerm) || companyName.includes(searchTerm);
-            const matchesLocation = location === '' || jobLocation.includes(location);
-
-            if (matchesSearch && matchesLocation) {
-                card.style.display = 'block';
-                card.style.opacity = '1';
-                card.style.animation = 'fadeIn 0.5s ease';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-
-        // Scroll to jobs section
-        document.getElementById('jobs').scrollIntoView({ behavior: 'smooth' });
-    });
-}
-
-// Enable search on Enter key
-if (searchInput) {
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            searchBtn.click();
-        }
-    });
-}
-
-if (locationInput) {
-    locationInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            searchBtn.click();
-        }
-    });
-}
-
-// =========================
-// CATEGORY CARDS ANIMATION
-// =========================
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-};
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.animation = 'fadeInUp 0.6s ease forwards';
-            observer.unobserve(entry.target);
-        }
-    });
-}, observerOptions);
-
-// Observe category cards
-document.querySelectorAll('.category-card').forEach((card, index) => {
-    card.style.opacity = '0';
-    card.style.animationDelay = `${index * 0.1}s`;
-    observer.observe(card);
-});
-
-// Observe job cards
-document.querySelectorAll('.job-card').forEach((card, index) => {
-    card.style.opacity = '0';
-    card.style.animation = `fadeInUp 0.6s ease forwards ${index * 0.05}s`;
-});
-
-// =========================
-// LOAD MORE JOBS
-// =========================
-const loadMoreBtn = document.querySelector('.load-more .btn');
-
-if (loadMoreBtn) {
-    loadMoreBtn.addEventListener('click', () => {
-        // Simulate loading more jobs
-        loadMoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chargement...';
-
-        setTimeout(() => {
-            loadMoreBtn.innerHTML = 'Voir Plus d\'Offres';
-            showInfo('Bientôt disponible', 'De nouvelles offres seront ajoutées prochainement. Revenez bientôt !');
-        }, 1000);
-    });
-}
-
-// =========================
-// HEADER SHADOW ON SCROLL
-// =========================
-const header = document.querySelector('.header');
-
-window.addEventListener('scroll', () => {
-    if (window.scrollY > 50) {
-        header.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-    } else {
-        header.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+// ── Active Nav Link ──────────────────────────────────────────────
+const currentPath = window.location.pathname;
+document.querySelectorAll('.nav-link').forEach(link => {
+    const href = link.getAttribute('href');
+    if (href && currentPath.includes(href.replace('#', '').split('?')[0]) && href !== '/index.php') {
+        link.classList.add('active');
     }
 });
 
-// =========================
-// ACCOUNT TYPE SELECTION (for inscription page)
-// =========================
-const accountTypeCards = document.querySelectorAll('.account-type-card');
-
-accountTypeCards.forEach(card => {
-    card.addEventListener('click', () => {
-        accountTypeCards.forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-
-        const accountType = card.getAttribute('data-type');
-
-        // Show/hide form fields based on account type
-        const companyFields = document.querySelectorAll('.company-field');
-        const candidateFields = document.querySelectorAll('.candidate-field');
-
-        if (accountType === 'entreprise') {
-            companyFields.forEach(field => field.style.display = 'block');
-            candidateFields.forEach(field => field.style.display = 'none');
-        } else {
-            companyFields.forEach(field => field.style.display = 'none');
-            candidateFields.forEach(field => field.style.display = 'block');
-        }
-    });
-});
-
-// =========================
-// FORM VALIDATION
-// =========================
-const inscriptionForm = document.getElementById('inscriptionForm');
-
-if (inscriptionForm) {
-    inscriptionForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        // Get form values
-        const formData = new FormData(inscriptionForm);
-        const data = Object.fromEntries(formData);
-
-        // Simple validation
-        let isValid = true;
-        const requiredFields = inscriptionForm.querySelectorAll('[required]');
-
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                isValid = false;
-                field.style.borderColor = '#ef4444';
-            } else {
-                field.style.borderColor = '#e5e7eb';
-            }
+// ── Number Counter Animation ─────────────────────────────────────
+const counters = document.querySelectorAll('.panel-big-number, .metric-copy strong, .stat h3, .pipeline-count');
+if ('IntersectionObserver' in window && counters.length) {
+    const counterObserver = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const el = entry.target;
+            const text = el.textContent.trim();
+            const match = text.match(/^(\d+)/);
+            if (!match) return;
+            const target = parseInt(match[1], 10);
+            const suffix = text.replace(match[1], '');
+            const duration = 800;
+            const start = performance.now();
+            const animate = now => {
+                const progress = Math.min((now - start) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                el.textContent = Math.round(target * eased) + suffix;
+                if (progress < 1) requestAnimationFrame(animate);
+            };
+            requestAnimationFrame(animate);
+            obs.unobserve(el);
         });
+    }, { threshold: 0.5 });
 
-        if (isValid) {
-            // Simulate form submission
-            const submitBtn = inscriptionForm.querySelector('.btn-primary');
-            const originalText = submitBtn.textContent;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Inscription en cours...';
-            submitBtn.disabled = true;
-
-            setTimeout(() => {
-                alert('Inscription réussie ! Vous pouvez maintenant postuler aux offres.');
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-                inscriptionForm.reset();
-            }, 1500);
-        } else {
-            alert('Veuillez remplir tous les champs obligatoires.');
-        }
-    });
+    counters.forEach(el => counterObserver.observe(el));
 }
 
-// =========================
-// JOB APPLICATION (for job details page)
-// =========================
-const applyBtn = document.querySelector('.apply-section .btn-primary');
-
-if (applyBtn && !inscriptionForm) {
-    applyBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-
-        // Check if user is logged in (simulation)
-        const isLoggedIn = false; // Change to true to simulate logged in user
-
-        if (!isLoggedIn) {
-            if (confirm('Vous devez être inscrit pour postuler. Voulez-vous créer un compte ?')) {
-                window.location.href = 'inscription.html';
-            }
-        } else {
-            const originalText = applyBtn.textContent;
-            applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
-            applyBtn.disabled = true;
-
-            setTimeout(() => {
-                alert('Votre candidature a été envoyée avec succès !');
-                applyBtn.innerHTML = '<i class="fas fa-check"></i> Candidature envoyée';
-                applyBtn.style.backgroundColor = '#10b981';
-            }, 1500);
-        }
-    });
-}
-
-// =========================
-// ANIMATE NUMBERS IN HERO STATS
-// =========================
-function animateNumber(element, target, duration = 2000) {
-    const start = 0;
-    const increment = target / (duration / 16);
-    let current = start;
-
-    const timer = setInterval(() => {
-        current += increment;
-        if (current >= target) {
-            element.textContent = target.toLocaleString('fr-FR');
-            clearInterval(timer);
-        } else {
-            element.textContent = Math.floor(current).toLocaleString('fr-FR');
-        }
-    }, 16);
-}
-
-// Animate stats when they come into view
-const stats = document.querySelectorAll('.stat h3');
-let statsAnimated = false;
-
-const statsObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting && !statsAnimated) {
-            stats.forEach((stat, index) => {
-                const target = parseInt(stat.textContent.replace(/,/g, ''));
-                setTimeout(() => {
-                    animateNumber(stat, target);
-                }, index * 200);
-            });
-            statsAnimated = true;
-        }
-    });
-}, { threshold: 0.5 });
-
-const heroStats = document.querySelector('.hero-stats');
-if (heroStats) {
-    statsObserver.observe(heroStats);
-}
-
-// =========================
-// TOOLTIP FOR JOB CARDS
-// =========================
-jobCards.forEach(card => {
-    card.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-8px)';
-    });
-
-    card.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0)';
-    });
+// ── Tooltip for truncated text ───────────────────────────────────
+document.querySelectorAll('[data-tooltip]').forEach(el => {
+    el.style.cursor = 'help';
 });
 
-// =========================
-// CONSOLE MESSAGE
-// =========================
-console.log('%c🚀 JobHub - Votre Avenir Commence Ici', 'color: #3b82f6; font-size: 20px; font-weight: bold;');
-console.log('%cBienvenue sur notre plateforme de recherche d\'emploi !', 'color: #6b7280; font-size: 14px;');
+// ── Confirm Delete Dialogs ───────────────────────────────────────
+document.querySelectorAll('.confirm-delete').forEach(form => {
+    form.addEventListener('submit', e => {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.')) {
+            e.preventDefault();
+        }
+    });
+});
